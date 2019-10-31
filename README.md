@@ -8,7 +8,6 @@ lost in trying to figure out which parameters to set and how to set those parame
 it really easy to add retry functionality to any task that requires retry. Suppose we want parse `www.example.com/retry` and we want to add a retry to handle specific netwrok Exception.
 Then we can add a channable retry for handling network exceptions in the following way:
 
-.. code-block:: python
 
     from channable_retries import channable_retry
     from requests.exceptions import ConnectionError
@@ -40,7 +39,6 @@ Installation
 
 To install channable_retries, simply:
 
-.. code-block:: bash
 
     $ pip install channable_retries
 
@@ -54,7 +52,6 @@ scenario where it could applied.
 One scenario is that we want to do retries on multiple exceptions. Using channable retries, we could easily extend the above example to retry teh netwrok request for
 multiple exceptions.  
 
-.. code-block:: python
 
 	from channable_retries import channable_retry
     from requests.exceptions import ConnectionError
@@ -78,8 +75,6 @@ multiple exceptions.
 Let's make it a little bit more generic and add list of retry exception that should be used for running 
 the retry:
 
-.. code-block:: python
-
     from channable_retry import STANDARD_HTTP_EXCEPTIONS
 
     @channable_retry(
@@ -98,13 +93,6 @@ Any combination of stop, wait, etc. is also supported to give you the freedom to
 
 Contribute
 ----------
-
-#. Check for open issues or open a fresh issue to start a discussion around a feature idea or a bug.
-#. Fork `the repository`_ on GitHub to start making your changes to the **master** branch (or branch off of it).
-#. Write a test which shows that the bug was fixed or that the feature works as expected.
-#. Send a pull request and bug the maintainer until it gets merged and published. :) Make sure to add yourself to AUTHORS_.
-
-.. _`the repository`: http://github.com/rholder/retrying
 
 
 License
