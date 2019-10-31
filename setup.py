@@ -1,16 +1,12 @@
 import setuptools
-import os
-
-
-with open(os.path.join(os.path.dirname(__file__), 'channable_retry/VERSION'), 'rb') as f:
-    version = f.read().decode('ascii').strip()
+from retry import  __version__
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name="example-pkg-your-username",
-    version=version,
+    version=__version__,
     author="Channable",
     author_email="info@channable.com",
     description="Retries for humans” tagline",
@@ -20,11 +16,8 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
+        "License :: OSI Approved :: 3-clause BSD.",
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.6',
-    install_requires=[
-        'Twisted>=16.0.0;python_version=="2.7"',
-    ],
 )
