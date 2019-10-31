@@ -16,4 +16,4 @@ if sys.version_info < (2, 7):
 # Channable-retry version
 __version__ = pkgutil.get_data(__package__, 'VERSION').decode('ascii').strip()
 
-__all__ = [__version__,  channable_retry_async, channable_retry, STANDARD_HTTP_EXCEPTIONS]
+__all__ = [__version__,  channable_retry_async, channable_retry]
