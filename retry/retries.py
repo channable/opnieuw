@@ -283,7 +283,6 @@ def channable_retry_async(
             if last_exception is not None:
                 raise last_exception
 
-        # See `channable_retry()` for detailed explanation of why we cast the return type here.
         return cast(AF, wrapper)
 
     return decorator
