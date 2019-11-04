@@ -1,47 +1,65 @@
+import time
 import unittest
+
+from retry.clock import TestClock, MonotonicClock
+from retry.retries import RetryState, DoCall, channable_retry
 
 
 class TestRetryState(unittest.TestCase):
 
     def test_never_stop(self):
-        r = Retrying()
-        self.assertFalse(r.stop(3, 6546))
+        retry_state = RetryState(
+                MonotonicClock(),
+                max_calls_total=0,
+                retry_window_after_first_call_in_seconds=3,
+            )
 
-    def test_stop_after_attempt(self):
-        r = Retrying(stop_max_attempt_number=3)
-        self.assertFalse(r.stop(2, 6546))
-        self.assertTrue(r.stop(3, 6546))
-        self.assertTrue(r.stop(4, 6546))
-
-
-class TestClock(unittest.TestCase):
-    pass
+        for rt in retry_state:
+            self.assertIsInstance(rt, DoCall)
 
 
-class TestChannableRetryDecorator(unittest.TestCase):
+class TestRetryClock(unittest.TestCase):
+    def setUp(self) -> None:
+        self.clock = TestClock()
 
-    def test_no_sleep(self):
-        r = Retrying()
-        self.assertEqual(0, r.wait(18, 9879))
+    def test_negative_time_value(self):
+        try:
+            self.clock.advance_to(-60.00)
+        except AssertionError as e:
+            self.assertIsInstance(e, AssertionError)
+            self.assertEqual(self.clock.time == 0.0)
 
-    def test_fixed_sleep(self):
-        r = Retrying(wait_fixed=1000)
-        self.assertEqual(1000, r.wait(12, 6546))
-
-
-@retry(wait_fixed=50, retry_on_result=retry_if_result_none)
-def _retryable_test_with_wait(thing):
-    return thing.go()
+    def test_advanced_to(self):
+        self.clock.advance_to(60.00)
+        self.assertEqual(self.clock.time == 60.00)
 
 
-class TestAsyncRetryDecorator(unittest.TestCase):
+@channable_retry(
+    retry_on_exceptions=TypeError,
+    max_calls_total=3,
+    retry_window_after_first_call_in_seconds=60,
+)
+def foo() -> None:
+    raise TypeError
 
-    def test_with_wait(self):
-        start = current_time_ms()
-        result = _retryable_test_with_wait(NoneReturnUntilAfterCount(5))
-        t = current_time_ms() - start
-        self.assertTrue(t >= 250)
-        self.assertTrue(result)
+
+class TesRetryDecorator(unittest.TestCase):
+
+    def test_raise_exception(self):
+        try:
+            foo()
+        except TypeError as e:
+            self.assertTrue(isinstance(e, TypeError))
+
+    def test_retry_time(self):
+        start = time.time()
+
+        try:
+            foo()
+        except TypeError as e:
+            end = time.time()
+            t_diff = end - start
+            self.assertTrue(t_diff >= 60.00)
 
 
 if __name__ == '__main__':
