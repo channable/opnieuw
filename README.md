@@ -2,7 +2,7 @@ Channable Retry
 =========================
 Channable Retry is a general-purpose retrying library, written in
 Python, in order to simplify the task of adding retry behavior to both synchronous as well as asynchronous tasks.
-Channable Retry is easy and straight forward to use. Why channable-retry?. Most retry packages lack either
+Channable Retry is easy and straight forward to use. Why channable-retry? Most retry packages lack either
 adequate documentation on how to properly use the package and or are difficult to customize. Valuable time is
 lost in trying to figure out how to properly utilize a retry package. Channable-retry makes
 it incredibly easy to add retry functionality to any task that requires retry.
