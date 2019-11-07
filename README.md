@@ -24,8 +24,8 @@ from channable_retries import channable_retry
     retry_window_after_first_call_in_seconds=60,
 )
 def get_page() -> str:
-      response = requests.get('https://tech.channable.com/atom.xml')
-      return response.text
+    response = requests.get('https://tech.channable.com/atom.xml')
+    return response.text
 ```
 
 In the above decorator, `retry_on_exceptions` refers to exceptions we want to
