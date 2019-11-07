@@ -83,21 +83,21 @@ running the retry:
 
 ```python
 
-    STANDARD_HTTP_EXCEPTIONS =  (
-        ConnectionError,
-        ProtocolError,
-        RetryException,
-        ...
-    )
+STANDARD_HTTP_EXCEPTIONS =  (
+    ConnectionError,
+    ProtocolError,
+    RetryException,
+    ...
+)
 
-    @channable_retry(
-        retry_on_exceptions=STANDARD_HTTP_EXCEPTIONS
-        max_calls_total=4,
-        retry_window_after_first_call_in_seconds=60,
-    )
-    def get_page() -> str:
-        response = requests.post('https://tech.channable.com/atom.xml')
-        return response.text
+@channable_retry(
+    retry_on_exceptions=STANDARD_HTTP_EXCEPTIONS
+    max_calls_total=4,
+    retry_window_after_first_call_in_seconds=60,
+)
+def get_page() -> str:
+    response = requests.post('https://tech.channable.com/atom.xml')
+    return response.text
 
 ```
 
@@ -110,21 +110,21 @@ If you want retry behavior for async tasks, then there is also an async retry wh
 Here is the example above but in async mood:
 ```python
 
-    from channable_retries import channable_retry_async
+from channable_retries import channable_retry_async
 
-    STANDARD_HTTP_EXCEPTIONS =  (
-            ConnectionError,
-            EOFError,
-            RetryException,
-            ...
-        )
-
-    @channable_retry_async(
-        retry_on_exceptions=STANDARD_HTTP_EXCEPTIONS,
-        max_calls_total=4,
-        retry_window_after_first_call_in_seconds=60,
+STANDARD_HTTP_EXCEPTIONS =  (
+        ConnectionError,
+        EOFError,
+        RetryException,
+        ...
     )
-    async def get_page() -> str:
-        response = requests.post('https://tech.channable.com/atom.xml')
-        return response.text
+
+@channable_retry_async(
+    retry_on_exceptions=STANDARD_HTTP_EXCEPTIONS,
+    max_calls_total=4,
+    retry_window_after_first_call_in_seconds=60,
+)
+async def get_page() -> str:
+    response = requests.post('https://tech.channable.com/atom.xml')
+    return response.text
 ```
