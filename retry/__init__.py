@@ -4,8 +4,9 @@
 # Licensed under the 3-clause BSD license, see the LICENSE file in the repository root
 
 from .retries import channable_retry_async, channable_retry
+from .exceptions import RetryException
 
 # Channable-retry version
 __version__ = '0.0.1'
 
-__all__ = [__version__,  channable_retry_async, channable_retry]
+__all__ = [__version__,  channable_retry_async, channable_retry, RetryException]
