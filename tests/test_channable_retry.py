@@ -7,7 +7,7 @@ import time
 import unittest
 
 from retry.clock import TestClock, MonotonicClock
-from retry.retries import RetryState, DoCall, channable_retry
+from opnieuw.retries import RetryState, DoCall, retry
 
 
 class TestRetryState(unittest.TestCase):
@@ -39,7 +39,7 @@ class TestRetryClock(unittest.TestCase):
         self.assertEqual(self.clock.time == 60.00)
 
 
-@channable_retry(
+@retry(
     retry_on_exceptions=TypeError,
     max_calls_total=3,
     retry_window_after_first_call_in_seconds=60,

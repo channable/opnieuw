@@ -1,24 +1,24 @@
-Channable Retry
+opnieuw
 =========================
-Channable Retry is a general-purpose retrying library, written in Python, in
+opnieuw is a general-purpose retrying library, written in Python, in
 order to simplify the task of adding retry behavior to both synchronous as well
-as asynchronous tasks.  Channable Retry is easy and straight forward to use. Why
+as asynchronous tasks.  opnieuw is easy and straight forward to use. Why
 channable-retry? Most retry packages lack either adequate documentation on how
 to properly use the package and or are difficult to customize. Valuable time is
 lost in trying to figure out how to properly utilize a retry package.
 Channable-retry makes it incredibly easy to add retry functionality to any task
 that requires retry.  Suppose we want parse
 `https://tech.channable.com/atom.xml` and we want to add a retry to handle a
-specific network Exception.  We can add a channable retry to our network handler
+specific network Exception.  We can add a opnieuw to our network handler
 as follows:
 
 ```python
 import requests    
 from requests.exceptions import ConnectionError
 
-from channable_retries import channable_retry
+from opnieuw import channable_retry
 
-@channable_retry(
+@retry(
     retry_on_exceptions=ConnectionError,
     max_calls_total=4,
     retry_window_after_first_call_in_seconds=60,
@@ -46,15 +46,15 @@ Features
 Installation
 ------------
 
-To install channable_retries, simply:
+To install opnieuw, simply:
 
-    $ pip install channable_retries
+    $ pip install opnieuw
 
 Examples
 ----------
 
 The short example above provides a concise demonstration of how
-channable_retries could be used. Let's dig deeper into channable_retries and add
+opnieuw could be used. Let's dig deeper into opnieuw and add
 another exception to `retry_on_exceptions` to do a retry on:
  
 ```python
@@ -62,7 +62,7 @@ from urllib.error import URLError
 import requests 
 from retry import RetryException, channable_retry
 
-@channable_retry(
+@retry(
     retry_on_exceptions=(ConnectionError, RetryException, URLError),
     max_calls_total=4,
     retry_window_after_first_call_in_seconds=60,
@@ -90,7 +90,7 @@ STANDARD_HTTP_EXCEPTIONS =  (
     ...
 )
 
-@channable_retry(
+@retry(
     retry_on_exceptions=STANDARD_HTTP_EXCEPTIONS
     max_calls_total=4,
     retry_window_after_first_call_in_seconds=60,
@@ -110,7 +110,7 @@ If you want retry behavior for async tasks, then there is also an async retry wh
 Here is the example above but in async mood:
 ```python
 
-from channable_retries import channable_retry_async
+from opnieuw import channable_retry_async
 
 STANDARD_HTTP_EXCEPTIONS =  (
         ConnectionError,
@@ -119,7 +119,7 @@ STANDARD_HTTP_EXCEPTIONS =  (
         ...
     )
 
-@channable_retry_async(
+@retry_async(
     retry_on_exceptions=STANDARD_HTTP_EXCEPTIONS,
     max_calls_total=4,
     retry_window_after_first_call_in_seconds=60,

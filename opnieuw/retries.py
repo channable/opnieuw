@@ -118,7 +118,7 @@ class RetryState:
             )
 
 
-def channable_retry(
+def retry(
     *,
     retry_on_exceptions: Union[Type[Exception], Tuple[Type[Exception], ...]],
     max_calls_total: int = 3,
@@ -233,7 +233,7 @@ def channable_retry(
     return decorator
 
 
-def channable_retry_async(
+def retry_async(
     *,
     retry_on_exceptions: Union[Type[Exception], Tuple[Type[Exception], ...]],
     max_calls_total: int = 3,
