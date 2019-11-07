@@ -14,8 +14,9 @@ as follows:
 
 ```python
 import requests    
-from channable_retries import channable_retry
 from requests.exceptions import ConnectionError
+
+from channable_retries import channable_retry
 
 @channable_retry(
     retry_on_exceptions=ConnectionError,
@@ -24,7 +25,7 @@ from requests.exceptions import ConnectionError
 )
 def get_page() -> str:
       response = requests.get('https://tech.channable.com/atom.xml')
-      return repsonse.text
+      return response.text
 ```
 
 In the above decorator, `retry_on_exceptions` refers to exceptions we want to
@@ -58,7 +59,7 @@ another exception to `retry_on_exceptions` to do a retry on:
  
 ```python
 from urllib.error import URLError
-from urllib.request import urlopen
+import requests 
 from retry import RetryException, channable_retry
 
 @channable_retry(
@@ -67,9 +68,9 @@ from retry import RetryException, channable_retry
     retry_window_after_first_call_in_seconds=60,
 )
 def get_page() -> str:
-    response = urlopen('https://tech.channable.com/atom.xml')
+    response = requests.get('https://tech.channable.com/atom.xml')
 
-    if response.code != 200:
+    if response.status_code != 200:
         raise RetryException
 
     return response.text
@@ -95,15 +96,8 @@ running the retry:
         retry_window_after_first_call_in_seconds=60,
     )
     def get_page() -> str:
-      
-        try:
-            response = requests.post('https://tech.channable.com/atom.xml')
-        except ConnectionError:
-            raise ConnectionError()
-        except urllib3.exceptions.ProtocolError:
-        	raise ProtocolError()
-        else:
-            return response.text
+        response = requests.post('https://tech.channable.com/atom.xml')
+        return response.text
 
 ```
 
@@ -126,19 +120,11 @@ Here is the example above but in async mood:
         )
 
     @channable_retry_async(
-        retry_on_exceptions=STANDARD_HTTP_EXCEPTIONS
+        retry_on_exceptions=STANDARD_HTTP_EXCEPTIONS,
         max_calls_total=4,
         retry_window_after_first_call_in_seconds=60,
     )
     async def get_page() -> str:
-      
-        try:
-            response = await requests.post('https://tech.channable.com/atom.xml')
-        except ConnectionError:
-            raise ConnectionError()
-        except urllib3.exceptions.ProtocolError:
-        	raise ProtocolError()
-        else:
-            return await response.text
-
+        response = requests.post('https://tech.channable.com/atom.xml')
+        return response.text
 ```
