@@ -9,4 +9,4 @@ from .exceptions import RetryException
 # opnieuw version
 __version__ = '0.0.1'
 
-__all__ = [__version__,  retry_async, retry, RetryException]
+__all__ = ["__version__", "retry_async", "retry", "RetryException"]
