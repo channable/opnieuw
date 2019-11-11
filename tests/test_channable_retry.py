@@ -1,4 +1,4 @@
-# Channable-retry: Retry for humans
+# opnieuw: Retries for humans
 # Copyright 2019 Channable
 #
 # Licensed under the 3-clause BSD license, see the LICENSE file in the repository root
@@ -6,7 +6,7 @@
 import time
 import unittest
 
-from retry.clock import TestClock, MonotonicClock
+from opnieuw.clock import TestClock, MonotonicClock
 from opnieuw.retries import RetryState, DoCall, retry
 
 

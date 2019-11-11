@@ -1,9 +1,9 @@
-# Channable-retry: Retry for humans
+# opnieuw: Retry for humans
 # Copyright 2019 Channable
 #
 # Licensed under the 3-clause BSD license, see the LICENSE file in the repository root
 
-from retry.retries import calculate_exponential_multiplier
+from opnieuw.retries import calculate_exponential_multiplier
 
 
 def test_calculate_exponential_multiplier():

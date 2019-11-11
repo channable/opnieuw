@@ -1,4 +1,4 @@
-# Channable-retry: Retry for humans
+# opnieuw: Retries for humans
 # Copyright 2019 Channable
 #
 # Licensed under the 3-clause BSD license, see the LICENSE file in the repository root
@@ -158,7 +158,7 @@ def retry(
 
     You can read this code as:
 
-        @channable_retry(
+        @retry(
             retry_on_exceptions=(FooError, SomeOtherError),
             max_calls_total=3,
             retry_window_after_first_call_in_seconds=60,
@@ -171,7 +171,7 @@ def retry(
     seconds have elapsed after the first retry, the second retry is not
     scheduled.
 
-    Channable-retry is based on retry algorithm off of:
+    opnieuw is based on a retry algorithm off of:
         https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
     """
 
@@ -240,7 +240,7 @@ def retry_async(
     retry_window_after_first_call_in_seconds: int = 60,
 ) -> Callable[[AF], AF]:
     """
-    The same decorator as channable_retry, but for async methods
+    The same decorator as retry, but for async methods.
     """
 
     def decorator(f: AF) -> AF:
