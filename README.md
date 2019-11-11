@@ -3,10 +3,10 @@ opnieuw
 opnieuw is a general-purpose retrying library, written in Python, in
 order to simplify the task of adding retry behavior to both synchronous as well
 as asynchronous tasks.  opnieuw is easy and straight forward to use. Why
-channable-retry? Most retry packages lack either adequate documentation on how
+Opnieuw? Most retry packages lack either adequate documentation on how
 to properly use the package and or are difficult to customize. Valuable time is
 lost in trying to figure out how to properly utilize a retry package.
-Channable-retry makes it incredibly easy to add retry functionality to any task
+Opnieuw makes it incredibly easy to add retry functionality to any task
 that requires retry.  Suppose we want parse
 `https://tech.channable.com/atom.xml` and we want to add a retry to handle a
 specific network Exception.  We can add a opnieuw to our network handler
@@ -76,7 +76,7 @@ def get_page() -> str:
     return response.text
 ```
 We can pass the name of exception we want do retry for or a tuple of exceptions to the `retry_on_exceptions`.
-As mentioned earlier Channable-retry was developed to make it more convenient to add retry behavior to any task. 
+As mentioned earlier Opnieuw was developed to make it more convenient to add retry behavior to any task. 
 
 Let's make it a little bit more generic and add list of retry exception that should be used for 
 running the retry:
