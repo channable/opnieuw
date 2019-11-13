@@ -1,12 +1,11 @@
 import setuptools
-from opnieuw import __version__
 
-with open('README.md', 'r', encoding='utf-8') as fh:
+with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name="opnieuw",
-    version=__version__,
+    version="0.0.1",
     author="Channable",
     author_email="ruud@channable.com",
     description="Retries for humans",
@@ -19,5 +18,5 @@ setuptools.setup(
         "License :: OSI Approved :: BSD License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.6',
+    python_requires=">=3.6",
 )

@@ -1,7 +1,7 @@
-# opnieuw: Retries for humans
+# Opnieuw: Retries for humans
 # Copyright 2019 Channable
 #
-# Licensed under the 3-clause BSD license, see the LICENSE file in the repository root
+# Licensed under the 3-clause BSD license, see the LICENSE file in the repository root.
 
 import time
 from abc import ABC, abstractmethod
@@ -27,7 +27,7 @@ class TestClock(Clock):
         self.time = 0.0
 
     def advance_to(self, t: float) -> None:
-        assert t >= self.time, 'Clock should not go backwards'
+        assert t >= self.time, "Clock should not go backwards"
         self.time = t
 
     def seconds_since_epoch(self) -> float:

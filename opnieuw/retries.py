@@ -1,7 +1,7 @@
-# opnieuw: Retries for humans
+# Opnieuw: Retries for humans
 # Copyright 2019 Channable
 #
-# Licensed under the 3-clause BSD license, see the LICENSE file in the repository root
+# Licensed under the 3-clause BSD license, see the LICENSE file in the repository root.
 
 # pylint: disable=raising-bad-type
 import asyncio
@@ -9,7 +9,18 @@ import functools
 import logging
 import random
 import time
-from typing import Awaitable, cast, Any, Callable, Iterator, NamedTuple, Tuple, Type, TypeVar, Union
+from typing import (
+    Awaitable,
+    cast,
+    Any,
+    Callable,
+    Iterator,
+    NamedTuple,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 from .clock import Clock, MonotonicClock
 
@@ -17,10 +28,10 @@ logger = logging.getLogger(__name__)
 
 # Type variable to annotate decorators that take a function,
 # and return a function with the same signature.
-F = TypeVar('F', bound=Callable[..., Any])
+F = TypeVar("F", bound=Callable[..., Any])
 # Type variable to annotate decorators that take an async function,
 # and return a function with the same signature.
-AF = TypeVar('AF', bound=Callable[..., Awaitable[Any]])
+AF = TypeVar("AF", bound=Callable[..., Awaitable[Any]])
 
 
 def calculate_exponential_multiplier(
@@ -30,10 +41,12 @@ def calculate_exponential_multiplier(
     Solve the following equation for `m`:
         \sum_{k=0}^{n} m 2^k = <retry_window_after_first_call_in_seconds>
 
-    where `n` is the number of attempts. Since we start at `k=0`, then `n = max_calls_total - 2`.
+    where `n` is the number of attempts. Since we start at `k=0`, then
+    `n = max_calls_total - 2`.
 
     An example:
-        Let `max_calls_total = 4` and `retry_window_after_first_call_in_seconds = 120`, then we have
+        Let `max_calls_total = 4` and `retry_window_after_first_call_in_seconds = 120`,
+        then we have:
             \sum_{k=0}^{4 - 2} m 2^k = 120
 
         which expands into:
@@ -59,7 +72,7 @@ def calculate_exponential_multiplier(
 
 class DoCall:
     """
-    An instance which tells the retry decorator to attempt the function
+    An instance which tells the retry decorator to attempt the function.
     """
 
 
@@ -89,7 +102,10 @@ class RetryState:
     """
 
     def __init__(
-        self, clock: Clock, max_calls_total: int, retry_window_after_first_call_in_seconds: int
+        self,
+        clock: Clock,
+        max_calls_total: int,
+        retry_window_after_first_call_in_seconds: int,
     ) -> None:
         self.clock = clock
         self.max_calls_total = max_calls_total
@@ -130,7 +146,7 @@ def retry(
     This function exposes two settings:
 
      - `max_calls_total` - The maximum number of calls of the decorated
-       function, in total.  Includes the inital call and all retries.
+       function, in total. Includes the inital call and all retries.
      - `retry_window_after_first_call_in_seconds` - The number of seconds to
        spread out the retries over after the first call.
 
@@ -143,7 +159,7 @@ def retry(
 
     This function will NOT:
 
-     - Time the execution of the decorated function. It assumes it's execution
+     - Time the execution of the decorated function. It assumes its execution
        is instant.
      - Interrupt execution of the decorated function once the retry window is
        over.
@@ -171,7 +187,7 @@ def retry(
     seconds have elapsed after the first retry, the second retry is not
     scheduled.
 
-    opnieuw is based on a retry algorithm off of:
+    Opnieuw is based on a retry algorithm off of:
         https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
     """
 
@@ -203,17 +219,17 @@ def retry(
 
                     if sleep_seconds > retry_action.seconds_left:
                         logger.debug(
-                            'Next attempt would be after retry deadline. No point retrying.'
+                            "Next attempt would be after retry deadline. No point retrying."
                         )
 
                         assert (
                             last_exception is not None
-                        ), 'Exception expected if we have a DoWait retry action!'
+                        ), "Exception expected if we have a DoWait retry action!"
                         raise last_exception
 
                     logger.debug(
-                        f'Sleeping for {sleep_seconds:.3f} seconds after '
-                        f'attempt {retry_action.attempts_so_far}'
+                        f"Sleeping for {sleep_seconds:.3f} seconds after "
+                        f"attempt {retry_action.attempts_so_far}"
                     )
                     time.sleep(sleep_seconds)
 
@@ -271,17 +287,17 @@ def retry_async(
 
                     if sleep_seconds > retry_action.seconds_left:
                         logger.debug(
-                            'Next attempt would be after retry deadline. No point retrying.'
+                            "Next attempt would be after retry deadline. No point retrying."
                         )
 
                         assert (
                             last_exception is not None
-                        ), 'Exception expected if we have a DoWait retry action!'
+                        ), "Exception expected if we have a DoWait retry action!"
                         raise last_exception
 
                     logger.debug(
-                        f'Sleeping for {sleep_seconds:.3f} seconds after '
-                        f'attempt {retry_action.attempts_so_far}'
+                        f"Sleeping for {sleep_seconds:.3f} seconds after "
+                        f"attempt {retry_action.attempts_so_far}"
                     )
                     await asyncio.sleep(sleep_seconds)
 
