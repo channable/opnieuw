@@ -1,23 +1,22 @@
-# Channable-retry: Retry for humans
+# Opnieuw: Retries for humans
 # Copyright 2019 Channable
 #
-# Licensed under the 3-clause BSD license, see the LICENSE file in the repository root
+# Licensed under the 3-clause BSD license, see the LICENSE file in the repository root.
 
 import time
 import unittest
 
-from retry.clock import TestClock, MonotonicClock
+from opnieuw.clock import TestClock, MonotonicClock
 from opnieuw.retries import RetryState, DoCall, retry
 
 
 class TestRetryState(unittest.TestCase):
-
     def test_never_stop(self):
         retry_state = RetryState(
-                MonotonicClock(),
-                max_calls_total=0,
-                retry_window_after_first_call_in_seconds=3,
-            )
+            MonotonicClock(),
+            max_calls_total=0,
+            retry_window_after_first_call_in_seconds=3,
+        )
 
         for rt in retry_state:
             self.assertIsInstance(rt, DoCall)
@@ -49,7 +48,6 @@ def foo() -> None:
 
 
 class TesRetryDecorator(unittest.TestCase):
-
     def test_raise_exception(self):
         try:
             foo()
@@ -67,5 +65,5 @@ class TesRetryDecorator(unittest.TestCase):
             self.assertTrue(t_diff >= 60.00)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
