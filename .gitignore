@@ -1,3 +1,4 @@
 # Ignore compiled Python bytecode
 __pycache__
 *.pyc
+.idea/
