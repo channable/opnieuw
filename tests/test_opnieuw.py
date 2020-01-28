@@ -31,38 +31,42 @@ class TestRetryClock(unittest.TestCase):
             self.clock.advance_to(-60.00)
         except AssertionError as e:
             self.assertIsInstance(e, AssertionError)
-            self.assertEqual(self.clock.time == 0.0)
+            self.assertEqual(self.clock.time, 0.0)
 
     def test_advanced_to(self):
         self.clock.advance_to(60.00)
-        self.assertEqual(self.clock.time == 60.00)
+        self.assertEqual(self.clock.time, 60.00)
 
 
-@retry(
-    retry_on_exceptions=TypeError,
-    max_calls_total=3,
-    retry_window_after_first_call_in_seconds=60,
-)
-def foo() -> None:
-    raise TypeError
+class TestRetryDecorator(unittest.TestCase):
+    counter = 0
 
+    @retry(
+        retry_on_exceptions=TypeError,
+        max_calls_total=3,
+        retry_window_after_first_call_in_seconds=3,
+    )
+    def foo(self) -> None:
+        self.counter += 1
+        raise TypeError
 
-class TesRetryDecorator(unittest.TestCase):
     def test_raise_exception(self):
         try:
-            foo()
+            self.foo()
         except TypeError as e:
             self.assertTrue(isinstance(e, TypeError))
 
-    def test_retry_time(self):
+    def test_retry_times(self):
         start = time.time()
+        self.counter = 0
 
         try:
-            foo()
+            self.foo()
         except TypeError as e:
             end = time.time()
             t_diff = end - start
-            self.assertTrue(t_diff >= 60.00)
+            self.assertGreater(t_diff, 1)
+            self.assertEqual(self.counter, 3)
 
 
 if __name__ == "__main__":
