@@ -3,11 +3,18 @@
 #
 # Licensed under the 3-clause BSD license, see the LICENSE file in the repository root.
 
+import unittest
+
 from opnieuw.retries import calculate_exponential_multiplier
 
 
-def test_calculate_exponential_multiplier():
-    expected_multiplier = 8.0
-    multiplier = calculate_exponential_multiplier(5, 120)
+class ExponentialMultiplierTests(unittest.TestCase):
+    def test_calculate_exponential_multiplier(self):
+        expected_multiplier = 8.0
+        multiplier = calculate_exponential_multiplier(5, 120)
 
-    assert multiplier == expected_multiplier
+        self.assertEqual(multiplier, expected_multiplier)
+
+
+if __name__ == "__main__":
+    unittest.main()
