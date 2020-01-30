@@ -1,0 +1,52 @@
+version: "v1.0"
+name: "Opnieuw"
+
+agent:
+  machine:
+    type: "e1-standard-4"
+    os_image: "ubuntu1804"
+
+
+blocks:
+  - name: "Test"
+    dependencies: []
+
+    task:
+      prologue:
+        commands:
+          - "checkout"
+
+      jobs:
+        - name: "Unit tests"
+          commands:
+            - "python3.7 -m unittest discover tests"
+
+  - name: "Build and ship"
+    # Any time new commits are added to master branch we will try to publish to Pypi.
+    # The version of the package will be taken from `setup.py`. If there is a package
+    # with that version known to Pypi already, nothing will happen.
+    #skip:
+    #  when: "branch != 'master'"
+
+    dependencies:
+      - "Test"
+
+    task:
+      # To authenticate to Pypi we're using an api key stored in a secret in semaphore.
+      # Twine expects the username to be "__token__" in these cases.
+      env_vars:
+        - name: TWINE_USERNAME
+          value: "__token__"
+
+      secrets:
+        - name: opnieuw-pypi-api-key
+
+      prologue:
+        commands:
+          - "sudo pip install twine"
+          - "checkout"
+      jobs:
+        - name: "Build and ship it"
+          commands:
+            - "python3.7 setup.py sdist bdist_wheel"
+            - "twine upload --skip-existing --repository-url https://test.pypi.org/legacy/ dist/*"
