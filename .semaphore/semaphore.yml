@@ -3,7 +3,7 @@ name: "Opnieuw"
 
 agent:
   machine:
-    type: "e1-standard-4"
+    type: "e1-standard-2"
     os_image: "ubuntu1804"
 
 
@@ -12,13 +12,10 @@ blocks:
     dependencies: []
 
     task:
-      prologue:
-        commands:
-          - "checkout"
-
       jobs:
         - name: "Unit tests"
           commands:
+            - "checkout"
             - "python3.7 -m unittest discover tests"
 
   - name: "Build and ship"
@@ -42,12 +39,10 @@ blocks:
       secrets:
         - name: opnieuw-pypi-api-key
 
-      prologue:
-        commands:
-          - "sudo pip install twine"
-          - "checkout"
       jobs:
         - name: "Build and ship it"
           commands:
+            - "sudo pip install twine"
+            - "checkout"
             - "python3.7 setup.py sdist bdist_wheel"
             - "twine upload --skip-existing dist/*"
