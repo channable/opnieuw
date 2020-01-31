@@ -23,8 +23,8 @@ blocks:
     # Any time new commits are added to master branch we will try to publish to Pypi.
     # The version of the package will be taken from `setup.py`. If there is a package
     # with that version known to Pypi already, nothing will happen.
-#    skip:
-#      when: "branch != 'master'"
+    skip:
+      when: "branch != 'master'"
 
     dependencies:
       - "Test"
@@ -49,15 +49,4 @@ blocks:
             - "ssh-add ~/.ssh/id_ed25519"
 
             - "checkout"
-            - "git fetch --tags"
-            - "TAG=v$(python3.7 setup.py --version)"
-
-            # If the tag already exist this command will fail and the job will exit
-            # without raising an error. Otherwise, we will build the project,
-            # publish to PyPi, and push the tag to github.
-            - "git tag $TAG || exit 0"
-
-            - "sudo pip install twine"
-            - "python3.7 setup.py sdist bdist_wheel"
-            - "twine upload --skip-existing dist/*"
-            - "git push origin $TAG"
+            - "bash .semaphore/publish-or-perish.sh"
