@@ -1,14 +1,30 @@
 Opnieuw
-=========================
+=======
+
 Opnieuw is a general-purpose retrying library, written in Python, in
 order to simplify the task of adding retry behavior to both synchronous as well
 as asynchronous tasks. Opnieuw is easy and straightforward to use.
 
-Why Opnieuw? Most retry packages lack either adequate documentation on how to
-properly use the package and or are difficult to customize. Valuable time is
-lost in trying to figure out how to properly utilize a retry package. Opnieuw
-makes it incredibly easy to add retry functionality to any task that requires
-retry.
+Opnieuw makes it easy to add robust retries:
+
+ * There is a single retry strategy, exponential backoff with jitter, which
+   makes it impossible to forget to add jitter.
+ * It has just two parameters, to eliminate the possibility of invalid and
+   nonsensical combinations.
+ * Parameters are named clearly, to avoid confusing e.g. number of calls
+   (including the initial one) with number of retries (excluding the initial
+   call).
+ * The parameters are intuitive: instead of configuring the base delay for
+   exponential backoff, Opnieuw accepts a maximum number of calls to make, and
+   maximum time after the first call to still retry.
+ * Time units are clear from parameter names to make the decorated code obvious,
+   and readable without needing to refer to documentation.
+
+See our [announcement post][post] for a bit more background on why we wrote
+Opnieuw.
+
+Example
+-------
 
 Suppose we want to parse `https://tech.channable.com/atom.xml` and we want to
 add a retry to handle a specific network Exception. We can add Opnieuw to our
@@ -16,12 +32,12 @@ network handler as follows:
 
 ```python
 import requests
-from requests.exceptions import ConnectionError
+from requests.exceptions import ConnectionError, HTTPError
 
 from opnieuw import retry
 
 @retry(
-    retry_on_exceptions=ConnectionError,
+    retry_on_exceptions=(ConnectionError, HTTPError),
     max_calls_total=4,
     retry_window_after_first_call_in_seconds=60,
 )
@@ -30,20 +46,21 @@ def get_page() -> str:
     return response.text
 ```
 
-In the above decorator, `retry_on_exceptions` refers to exceptions we want to
-retry on, `max_calls_total` maximal number of retry attempts we want to make,
-and `retry_window_after_first_call_in_seconds` refers to retry window within
-which the `max_calls_total` will be made. In this case we want to make
-a maximum of 4 retries spread uniformly on a 60 second interval.
+ * `retry_on_exceptions` specifies which exceptions we want to retry on.
+
+ * `max_calls_total` is the maximum number of times that the decorated function
+   gets called, including the initial call.
+
+ * `retry_window_after_first_call_in_seconds` is the maximum number of seconds
+   after the first call was initiated, where we would still do a new attempt.
 
 Features
 --------
 
-- Generic Decorator API
-- Specify retry exception (i.e. kind of exception that we want retry)
-- Specify retry window after first call in seconds (i.e. exponential backoff sleeping between attempts)
-- Pre-shipped list of popular exceptions, which can easily be expanded
-
+ * Generic decorator API
+ * Specify retry exception (i.e. type of exception that we want retry)
+ * [Exponential backoff with jitter][exponential-backoff]
+ * Pre-shipped list of popular exceptions, which can easily be expanded
 
 Installation
 ------------
@@ -52,8 +69,8 @@ To install Opnieuw, simply:
 
     $ pip install opnieuw
 
-Examples
-----------
+More examples
+--------
 
 The short example above provides a concise demonstration of how Opnieuw could
 be used. Let's dig deeper into Opnieuw and add another exception to
@@ -130,3 +147,6 @@ async def get_page() -> str:
     response = requests.get('https://tech.channable.com/atom.xml')
     return response.text
 ```
+
+[post]: https://tech.channable.com/posts/2020-02-05-opnieuw.html
+[exponential-backoff]: https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
