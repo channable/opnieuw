@@ -65,7 +65,7 @@ def calculate_exponential_multiplier(
     """
 
     count = 2 ** (max_calls_total - 1) - 1
-    multiplier = retry_window_after_first_call_in_seconds / count
+    multiplier = retry_window_after_first_call_in_seconds / max(count, 1)
 
     return multiplier
 
