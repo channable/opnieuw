@@ -147,7 +147,7 @@ def retry(
     retry_on_exceptions: Union[Type[Exception], Tuple[Type[Exception], ...]],
     max_calls_total: int = 3,
     retry_window_after_first_call_in_seconds: int = 60,
-    namespace: str = None,
+    namespace: Optional[str] = None,
 ) -> Callable[[F], F]:
     """
     Retry a function using a Full Jitter exponential backoff.
@@ -263,7 +263,7 @@ def retry_async(
     retry_on_exceptions: Union[Type[Exception], Tuple[Type[Exception], ...]],
     max_calls_total: int = 3,
     retry_window_after_first_call_in_seconds: int = 60,
-    namespace: str = None,
+    namespace: Optional[str] = None,
 ) -> Callable[[AF], AF]:
     def decorator(f: AF) -> AF:
         @functools.wraps(f)
