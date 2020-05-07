@@ -152,12 +152,15 @@ def retry(
     """
     Retry a function using a Full Jitter exponential backoff.
 
-    This function exposes two settings:
+    This function exposes four settings:
 
+     - `retry_on_exceptions` - A tuple of exception types to retry on.
      - `max_calls_total` - The maximum number of calls of the decorated
-       function, in total. Includes the inital call and all retries.
+       function, in total. Includes the initial call and all retries.
      - `retry_window_after_first_call_in_seconds` - The number of seconds to
        spread out the retries over after the first call.
+     - `namespace` - A name with which the wait behavior can be controlled
+       using the `opnieuw.test_util.retry_immediately` contextmanager.
 
     This function will:
 
@@ -199,7 +202,6 @@ def retry(
     Opnieuw is based on a retry algorithm off of:
         https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
     """
-
     def decorator(f: F) -> F:
         @functools.wraps(f)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -313,3 +315,6 @@ def retry_async(
         return cast(AF, wrapper)
 
     return decorator
+
+
+retry_async.__doc__ = retry.__doc__
