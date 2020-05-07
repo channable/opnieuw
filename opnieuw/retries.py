@@ -9,6 +9,7 @@ import functools
 import logging
 import random
 import time
+from collections import defaultdict
 from typing import (
     Awaitable,
     cast,
@@ -20,6 +21,8 @@ from typing import (
     Type,
     TypeVar,
     Union,
+    Dict,
+    Optional,
 )
 
 from .clock import Clock, MonotonicClock
@@ -134,11 +137,17 @@ class RetryState:
             )
 
 
+__retry_state_namespaces: Dict[Optional[str], Type[RetryState]] = defaultdict(
+    lambda: RetryState
+)
+
+
 def retry(
     *,
     retry_on_exceptions: Union[Type[Exception], Tuple[Type[Exception], ...]],
     max_calls_total: int = 3,
     retry_window_after_first_call_in_seconds: int = 60,
+    namespace: str = None,
 ) -> Callable[[F], F]:
     """
     Retry a function using a Full Jitter exponential backoff.
@@ -165,8 +174,8 @@ def retry(
        over.
      - Guarantee that `max_calls_total` is actually reached. Once the retry
        window is over, no new calls will be made. Once the function executes
-       succesfully, no new calls will be made.
-     - Guarantee that `retry_window_afer_first_call_seconds` have passed after
+       successfully, no new calls will be made.
+     - Guarantee that `retry_window_after_first_call_seconds` have passed after
        `max_calls_total` have been made. The expected time is after `0.5 *
        retry_window_after_first_call`. The actual wait time is sampled
        uniformly from [0, base_delay * 2 ^ i], which has an expected value of
@@ -197,7 +206,7 @@ def retry(
 
             last_exception = None
 
-            retry_state = RetryState(
+            retry_state = __retry_state_namespaces[namespace](
                 MonotonicClock(),
                 max_calls_total=max_calls_total,
                 retry_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
@@ -254,18 +263,15 @@ def retry_async(
     retry_on_exceptions: Union[Type[Exception], Tuple[Type[Exception], ...]],
     max_calls_total: int = 3,
     retry_window_after_first_call_in_seconds: int = 60,
+    namespace: str = None,
 ) -> Callable[[AF], AF]:
-    """
-    The same decorator as retry, but for async methods.
-    """
-
     def decorator(f: AF) -> AF:
         @functools.wraps(f)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
 
             last_exception = None
 
-            retry_state = RetryState(
+            retry_state = __retry_state_namespaces[namespace](
                 MonotonicClock(),
                 max_calls_total=max_calls_total,
                 retry_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
