@@ -9,7 +9,7 @@ from opnieuw.retries import calculate_exponential_multiplier
 
 
 class ExponentialMultiplierTests(unittest.TestCase):
-    def test_calculate_exponential_multiplier(self):
+    def test_calculate_exponential_multiplier(self) -> None:
         # test for max_calls_total=1 and 2
         expected_multiplier = 120.0
         multiplier = calculate_exponential_multiplier(1, 120)
