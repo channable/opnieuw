@@ -12,8 +12,9 @@ class WaitLessRetryState(RetryState):
 
 @contextmanager
 def retry_immediately(namespace: Optional[str] = None) -> Iterator[None]:
+    old_state = __retry_state_namespaces[namespace]
     __retry_state_namespaces[namespace] = WaitLessRetryState
     try:
         yield
     finally:
-        __retry_state_namespaces[namespace] = RetryState
+        __retry_state_namespaces[namespace] = old_state
