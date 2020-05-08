@@ -67,10 +67,10 @@ def calculate_exponential_multiplier(
         ∴ 7m = 120 => m = 120 / 7
     """
 
-    count = 2 ** (max_calls_total - 1) - 1
+    count = 2.0 ** (max_calls_total - 1) - 1
     multiplier = retry_window_after_first_call_in_seconds / max(count, 1)
 
-    return cast(float, multiplier)
+    return multiplier
 
 
 class DoCall:
