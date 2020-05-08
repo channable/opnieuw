@@ -9,6 +9,7 @@ import functools
 import logging
 import random
 import time
+from collections import defaultdict
 from typing import (
     Awaitable,
     cast,
@@ -20,6 +21,8 @@ from typing import (
     Type,
     TypeVar,
     Union,
+    Dict,
+    Optional,
 )
 
 from .clock import Clock, MonotonicClock
@@ -64,7 +67,7 @@ def calculate_exponential_multiplier(
         ∴ 7m = 120 => m = 120 / 7
     """
 
-    count = 2 ** (max_calls_total - 1) - 1
+    count = 2.0 ** (max_calls_total - 1) - 1
     multiplier = retry_window_after_first_call_in_seconds / max(count, 1)
 
     return multiplier
@@ -134,21 +137,30 @@ class RetryState:
             )
 
 
+__retry_state_namespaces: Dict[Optional[str], Type[RetryState]] = defaultdict(
+    lambda: RetryState
+)
+
+
 def retry(
     *,
     retry_on_exceptions: Union[Type[Exception], Tuple[Type[Exception], ...]],
     max_calls_total: int = 3,
     retry_window_after_first_call_in_seconds: int = 60,
+    namespace: Optional[str] = None,
 ) -> Callable[[F], F]:
     """
     Retry a function using a Full Jitter exponential backoff.
 
-    This function exposes two settings:
+    This function exposes four settings:
 
+     - `retry_on_exceptions` - A tuple of exception types to retry on.
      - `max_calls_total` - The maximum number of calls of the decorated
-       function, in total. Includes the inital call and all retries.
+       function, in total. Includes the initial call and all retries.
      - `retry_window_after_first_call_in_seconds` - The number of seconds to
        spread out the retries over after the first call.
+     - `namespace` - A name with which the wait behavior can be controlled
+       using the `opnieuw.test_util.retry_immediately` contextmanager.
 
     This function will:
 
@@ -165,8 +177,8 @@ def retry(
        over.
      - Guarantee that `max_calls_total` is actually reached. Once the retry
        window is over, no new calls will be made. Once the function executes
-       succesfully, no new calls will be made.
-     - Guarantee that `retry_window_afer_first_call_seconds` have passed after
+       successfully, no new calls will be made.
+     - Guarantee that `retry_window_after_first_call_seconds` have passed after
        `max_calls_total` have been made. The expected time is after `0.5 *
        retry_window_after_first_call`. The actual wait time is sampled
        uniformly from [0, base_delay * 2 ^ i], which has an expected value of
@@ -190,14 +202,13 @@ def retry(
     Opnieuw is based on a retry algorithm off of:
         https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
     """
-
     def decorator(f: F) -> F:
         @functools.wraps(f)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
 
             last_exception = None
 
-            retry_state = RetryState(
+            retry_state = __retry_state_namespaces[namespace](
                 MonotonicClock(),
                 max_calls_total=max_calls_total,
                 retry_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
@@ -254,18 +265,15 @@ def retry_async(
     retry_on_exceptions: Union[Type[Exception], Tuple[Type[Exception], ...]],
     max_calls_total: int = 3,
     retry_window_after_first_call_in_seconds: int = 60,
+    namespace: Optional[str] = None,
 ) -> Callable[[AF], AF]:
-    """
-    The same decorator as retry, but for async methods.
-    """
-
     def decorator(f: AF) -> AF:
         @functools.wraps(f)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
 
             last_exception = None
 
-            retry_state = RetryState(
+            retry_state = __retry_state_namespaces[namespace](
                 MonotonicClock(),
                 max_calls_total=max_calls_total,
                 retry_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
@@ -307,3 +315,6 @@ def retry_async(
         return cast(AF, wrapper)
 
     return decorator
+
+
+retry_async.__doc__ = retry.__doc__
