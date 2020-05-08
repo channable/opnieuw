@@ -8,7 +8,7 @@ import setuptools
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 setuptools.setup(
     name="opnieuw",
@@ -19,7 +19,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/channable/opnieuw",
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_packages(exclude=('tests',)),
     package_data={
         'opnieuw': ['py.typed'],
     },

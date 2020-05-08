@@ -1,6 +1,19 @@
 Changelog
 =========
 
+1.1.0
+-----
+
+Released 2020-05-08.
+
+**Breaking changes**:
+
+- None.
+
+Release highlights:
+
+- Prevent waiting while running tests via `test_util.retry_immediately`
+
 1.0.0
 -----
 
