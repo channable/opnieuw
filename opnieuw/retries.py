@@ -26,6 +26,8 @@ from typing import (
 )
 
 from .clock import Clock, MonotonicClock
+from .exceptions import BackoffAndRetryException
+
 
 logger = logging.getLogger(__name__)
 
@@ -162,6 +164,10 @@ def retry(
      - `namespace` - A name with which the wait behavior can be controlled
        using the `opnieuw.test_util.retry_immediately` contextmanager.
 
+    Note: if the decorated function raises a `BackoffAndRetryException`, the
+    counters for `max_calls_total` and `retry_window_after_first_call_in_seconds`
+    will reset.
+
     This function will:
 
      - Calculate how to fit `max_calls_total` executions of function in the
@@ -202,23 +208,42 @@ def retry(
     Opnieuw is based on a retry algorithm off of:
         https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
     """
+
+    def get_state_generator():
+        """ Create a generator object that produces DoCall and DoWait objects. """
+        return iter(
+            __retry_state_namespaces[namespace](
+                MonotonicClock(),
+                max_calls_total=max_calls_total,
+                retry_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
+            )
+        )
+
     def decorator(f: F) -> F:
         @functools.wraps(f)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
 
             last_exception = None
 
-            retry_state = __retry_state_namespaces[namespace](
-                MonotonicClock(),
-                max_calls_total=max_calls_total,
-                retry_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
-            )
+            retry_state = get_state_generator()
 
-            for retry_action in retry_state:
+            while True:
+                try:
+                    retry_action = next(retry_state)
+                except StopIteration:
+                    break
 
                 if isinstance(retry_action, DoCall):
                     try:
                         return f(*args, **kwargs)
+
+                    except BackoffAndRetryException as e:
+                        last_exception = e
+                        logger.debug(
+                            f"Encountered fixed backoff, sleeping for {e.seconds}"
+                        )
+                        time.sleep(e.seconds)
+                        retry_state = get_state_generator()
 
                     except retry_on_exceptions as e:
                         last_exception = e
@@ -267,23 +292,41 @@ def retry_async(
     retry_window_after_first_call_in_seconds: int = 60,
     namespace: Optional[str] = None,
 ) -> Callable[[AF], AF]:
+    def get_state_generator():
+        """ Create a generator object that produces DoCall and DoWait objects. """
+        return iter(
+            __retry_state_namespaces[namespace](
+                MonotonicClock(),
+                max_calls_total=max_calls_total,
+                retry_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
+            )
+        )
+
     def decorator(f: AF) -> AF:
         @functools.wraps(f)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
 
             last_exception = None
 
-            retry_state = __retry_state_namespaces[namespace](
-                MonotonicClock(),
-                max_calls_total=max_calls_total,
-                retry_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
-            )
+            retry_state = get_state_generator()
 
-            for retry_action in retry_state:
+            while True:
+                try:
+                    retry_action = next(retry_state)
+                except StopIteration:
+                    break
 
                 if isinstance(retry_action, DoCall):
                     try:
                         return await f(*args, **kwargs)
+
+                    except BackoffAndRetryException as e:
+                        last_exception = e
+                        logger.debug(
+                            f"Encountered fixed backoff, sleeping for {e.seconds}"
+                        )
+                        await asyncio.sleep(e.seconds)
+                        retry_state = get_state_generator()
 
                     except retry_on_exceptions as e:
                         last_exception = e

@@ -9,6 +9,11 @@ import unittest
 from opnieuw.clock import TestClock, MonotonicClock
 from opnieuw.retries import RetryState, DoCall, retry
 from opnieuw.test_util import retry_immediately
+from opnieuw.exceptions import BackoffAndRetryException
+
+
+class CustomBackoffThrottleError(BackoffAndRetryException):
+    pass
 
 
 class TestRetryState(unittest.TestCase):
@@ -109,6 +114,32 @@ class TestRetryDecorator(unittest.TestCase):
             self.assertRaises(AssertionError, self.test_retry_with_waits)
         with retry_immediately("bar_retry"):
             self.test_retry_with_waits()
+
+    @retry(
+        retry_on_exceptions=ValueError,
+        max_calls_total=4,
+        retry_window_after_first_call_in_seconds=10,
+    )
+    def namespaced_retry_fixed_backoff(self) -> None:
+        self.counter += 1
+        if self.counter == 4:
+            raise CustomBackoffThrottleError(seconds=1)
+        raise ValueError
+
+    def test_fixed_backoff_reset_max_calls(self):
+        self.counter = 0
+        start = time.monotonic()
+
+        with retry_immediately():
+            self.assertRaises(ValueError, self.namespaced_retry_fixed_backoff)
+
+        # expect to sleep at least 1 second for the BackoffAndRetry
+        end = time.monotonic()
+        runtime_seconds = end - start
+        self.assertGreater(runtime_seconds, 1)
+
+        # we exhaust max_calls_total twice
+        assert self.counter == 8
 
 
 if __name__ == "__main__":
