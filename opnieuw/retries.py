@@ -25,6 +25,8 @@ from typing import (
     Optional,
 )
 
+import wrapt
+
 from .clock import Clock, MonotonicClock
 
 logger = logging.getLogger(__name__)
@@ -202,60 +204,48 @@ def retry(
     Opnieuw is based on a retry algorithm off of:
         https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
     """
-    def decorator(f: F) -> F:
-        @functools.wraps(f)
-        def wrapper(*args: Any, **kwargs: Any) -> Any:
+    @wrapt.decorator
+    def decorator(f: F, instance, args, kwargs) -> F:
+        last_exception = None
 
-            last_exception = None
+        retry_state = __retry_state_namespaces[namespace](
+            MonotonicClock(),
+            max_calls_total=max_calls_total,
+            retry_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
+        )
 
-            retry_state = __retry_state_namespaces[namespace](
-                MonotonicClock(),
-                max_calls_total=max_calls_total,
-                retry_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
-            )
+        for retry_action in retry_state:
 
-            for retry_action in retry_state:
+            if isinstance(retry_action, DoCall):
+                try:
+                    return f(*args, **kwargs)
 
-                if isinstance(retry_action, DoCall):
-                    try:
-                        return f(*args, **kwargs)
+                except retry_on_exceptions as e:
+                    last_exception = e
 
-                    except retry_on_exceptions as e:
-                        last_exception = e
+            elif isinstance(retry_action, DoWait):
+                sleep_seconds = random.uniform(
+                    retry_action.min_seconds, retry_action.max_seconds
+                )
 
-                elif isinstance(retry_action, DoWait):
-                    sleep_seconds = random.uniform(
-                        retry_action.min_seconds, retry_action.max_seconds
-                    )
-
-                    if sleep_seconds > retry_action.seconds_left:
-                        logger.debug(
-                            "Next attempt would be after retry deadline. No point retrying."
-                        )
-
-                        assert (
-                            last_exception is not None
-                        ), "Exception expected if we have a DoWait retry action!"
-                        raise last_exception
-
+                if sleep_seconds > retry_action.seconds_left:
                     logger.debug(
-                        f"Sleeping for {sleep_seconds:.3f} seconds after "
-                        f"attempt {retry_action.attempts_so_far}"
+                        "Next attempt would be after retry deadline. No point retrying."
                     )
-                    time.sleep(sleep_seconds)
 
-            if last_exception is not None:
-                raise last_exception
+                    assert (
+                        last_exception is not None
+                    ), "Exception expected if we have a DoWait retry action!"
+                    raise last_exception
 
-        # `wrapper` has type `Callable[..., Any]`, whereas we should return something
-        # of type F, where F is some subtype of Callable[..., Any]. Note that inside
-        # this function, F is bound. That is, a particular type F has been fixed.
-        # The reason we use a type variable in the first place is not just to say
-        # "we take and return some callable function", but to say "this function
-        # returns something of exactly the same type as what you pass in". The thing
-        # you pass in has type F. And we construct `wrapped` in such a way to have
-        # type F too, therefore this cast is appropriate.
-        return cast(F, wrapper)
+                logger.debug(
+                    f"Sleeping for {sleep_seconds:.3f} seconds after "
+                    f"attempt {retry_action.attempts_so_far}"
+                )
+                time.sleep(sleep_seconds)
+
+        if last_exception is not None:
+            raise last_exception
 
     return decorator
 

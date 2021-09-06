@@ -4,11 +4,20 @@
 # Licensed under the 3-clause BSD license, see the LICENSE file in the repository root.
 
 import setuptools
+import pathlib
+import pkg_resources
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
+
+with pathlib.Path('requirements.txt').open() as requirements_txt:
+    install_requires = [
+        str(requirement)
+        for requirement
+        in pkg_resources.parse_requirements(requirements_txt)
+    ]
 
 setuptools.setup(
     name="opnieuw",
@@ -29,4 +38,5 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires=">=3.6",
+    install_requires=install_requires,
 )
