@@ -111,5 +111,26 @@ class TestRetryDecorator(unittest.TestCase):
             self.test_retry_with_waits()
 
 
+class TestRetryCombinedWithOtherDecorators(unittest.TestCase):
+    class HasClassMethod:
+        counter = 0
+
+        @retry(
+            retry_on_exceptions=TypeError,
+            max_calls_total=3,
+            retry_window_after_first_call_in_seconds=3,
+        )
+        @classmethod
+        def foo(cls) -> None:
+            cls.counter += 1
+            raise TypeError
+
+    def test_retry_works_with_classmethod(self) -> None:
+        try:
+            self.HasClassMethod.foo()
+        except TypeError as e:
+            self.assertEqual(self.HasClassMethod.counter, 3)
+
+
 if __name__ == "__main__":
     unittest.main()
