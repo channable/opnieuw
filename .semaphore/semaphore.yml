@@ -8,8 +8,19 @@ agent:
 
 
 blocks:
-  - name: "Test"
+  - name: "Requirements"
     dependencies: []
+
+    task:
+      jobs:
+        - name: "Resolve requirements"
+          commands:
+            - "checkout"
+            - "pip install -r ./requirements.txt"
+            
+  - name: "Test"
+    dependencies:
+      - "Requirements"
 
     task:
       jobs:
