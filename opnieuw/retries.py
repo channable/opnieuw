@@ -8,8 +8,10 @@ import asyncio
 import functools
 import logging
 import random
+import sys
 import time
 from collections import defaultdict
+from contextlib import contextmanager
 from typing import (
     Awaitable,
     cast,
@@ -137,9 +139,48 @@ class RetryState:
             )
 
 
-__retry_state_namespaces: Dict[Optional[str], Type[RetryState]] = defaultdict(
-    lambda: RetryState
-)
+if sys.version_info >= (3, 7):
+    from contextvars import ContextVar
+
+    __retry_state_namespaces: Dict[Optional[str], ContextVar[Type[RetryState]]] = defaultdict(
+        lambda: ContextVar('default_retry_state', default=RetryState)
+    )
+
+    @contextmanager
+    def replace_retry_state(
+        state: Type[RetryState],
+        *,
+        namespace: Optional[str] = None
+    ) -> Iterator[None]:
+        token = __retry_state_namespaces[namespace].set(state)
+        try:
+            yield
+        finally:
+            __retry_state_namespaces[namespace].reset(token)
+
+    def _get_retry_state(namespace: Optional[str]) -> Type[RetryState]:
+        return __retry_state_namespaces[namespace].get()
+
+else:
+    __retry_state_namespaces: Dict[Optional[str], Type[RetryState]] = defaultdict(
+        lambda: RetryState
+    )
+
+    @contextmanager
+    def replace_retry_state(
+        state: Type[RetryState],
+        *,
+        namespace: Optional[str] = None
+    ) -> Iterator[None]:
+        old_state = __retry_state_namespaces[namespace]
+        __retry_state_namespaces[namespace] = state
+        try:
+            yield
+        finally:
+            __retry_state_namespaces[namespace] = old_state
+
+    def _get_retry_state(namespace: Optional[str]) -> Type[RetryState]:
+        return __retry_state_namespaces[namespace]
 
 
 def retry(
@@ -208,7 +249,7 @@ def retry(
 
             last_exception = None
 
-            retry_state = __retry_state_namespaces[namespace](
+            retry_state = _get_retry_state(namespace)(
                 MonotonicClock(),
                 max_calls_total=max_calls_total,
                 retry_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
@@ -273,7 +314,7 @@ def retry_async(
 
             last_exception = None
 
-            retry_state = __retry_state_namespaces[namespace](
+            retry_state = _get_retry_state(namespace)(
                 MonotonicClock(),
                 max_calls_total=max_calls_total,
                 retry_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
