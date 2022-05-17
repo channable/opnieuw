@@ -8,10 +8,10 @@ import asyncio
 import functools
 import logging
 import random
-import sys
 import time
 from collections import defaultdict
 from contextlib import contextmanager
+from contextvars import ContextVar
 from typing import (
     Awaitable,
     cast,
@@ -139,48 +139,30 @@ class RetryState:
             )
 
 
-if sys.version_info >= (3, 7):
-    from contextvars import ContextVar
+__retry_state_namespaces: Dict[
+    Optional[str], ContextVar[Type[RetryState]]
+] = defaultdict(lambda: ContextVar("default_retry_state", default=RetryState))
 
-    __retry_state_namespaces: Dict[Optional[str], ContextVar[Type[RetryState]]] = defaultdict(
-        lambda: ContextVar('default_retry_state', default=RetryState)
-    )
 
-    @contextmanager
-    def replace_retry_state(
-        state: Type[RetryState],
-        *,
-        namespace: Optional[str] = None
-    ) -> Iterator[None]:
-        token = __retry_state_namespaces[namespace].set(state)
-        try:
-            yield
-        finally:
-            __retry_state_namespaces[namespace].reset(token)
+@contextmanager
+def replace_retry_state(
+    state: Type[RetryState], *, namespace: Optional[str] = None
+) -> Iterator[None]:
+    """
+    A context manager that replaces the state of the specified namespace with the
+    given `RetryState`.
+    This can be useful to customize the retry behavior, such as disabling the sleep interval during
+    tests (see `opnieuw.test_util.retry_immediately`).
 
-    def _get_retry_state(namespace: Optional[str]) -> Type[RetryState]:
-        return __retry_state_namespaces[namespace].get()
-
-else:
-    __retry_state_namespaces: Dict[Optional[str], Type[RetryState]] = defaultdict(
-        lambda: RetryState
-    )
-
-    @contextmanager
-    def replace_retry_state(
-        state: Type[RetryState],
-        *,
-        namespace: Optional[str] = None
-    ) -> Iterator[None]:
-        old_state = __retry_state_namespaces[namespace]
-        __retry_state_namespaces[namespace] = state
-        try:
-            yield
-        finally:
-            __retry_state_namespaces[namespace] = old_state
-
-    def _get_retry_state(namespace: Optional[str]) -> Type[RetryState]:
-        return __retry_state_namespaces[namespace]
+    Note: the retry state is context-local, meaning that changing the state in a thread or
+    asyncio task will not bleed to other threads or asyncio tasks.
+    See https://docs.python.org/3/library/contextvars.html for more details.
+    """
+    token = __retry_state_namespaces[namespace].set(state)
+    try:
+        yield
+    finally:
+        __retry_state_namespaces[namespace].reset(token)
 
 
 def retry(
@@ -243,13 +225,14 @@ def retry(
     Opnieuw is based on a retry algorithm off of:
         https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
     """
+
     def decorator(f: F) -> F:
         @functools.wraps(f)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
 
             last_exception = None
 
-            retry_state = _get_retry_state(namespace)(
+            retry_state = __retry_state_namespaces[namespace].get()(
                 MonotonicClock(),
                 max_calls_total=max_calls_total,
                 retry_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
@@ -314,7 +297,7 @@ def retry_async(
 
             last_exception = None
 
-            retry_state = _get_retry_state(namespace)(
+            retry_state = __retry_state_namespaces[namespace].get()(
                 MonotonicClock(),
                 max_calls_total=max_calls_total,
                 retry_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,

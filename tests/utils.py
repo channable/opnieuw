@@ -3,7 +3,7 @@ import unittest
 from contextlib import contextmanager
 from typing import Iterator, Awaitable, TypeVar
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class AsyncTestCase(unittest.TestCase):
