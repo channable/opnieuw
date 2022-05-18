@@ -141,7 +141,11 @@ class RetryState:
 
 __retry_state_namespaces: Dict[
     Optional[str], ContextVar[Type[RetryState]]
-] = defaultdict(lambda: ContextVar("default_retry_state", default=RetryState))
+] = defaultdict(lambda: ContextVar("opnieuw_default_retry_state", default=RetryState))
+
+
+def _get_retry_state_class(namespace: Optional[str]) -> Type[RetryState]:
+    return __retry_state_namespaces[namespace].get()
 
 
 @contextmanager
@@ -232,7 +236,7 @@ def retry(
 
             last_exception = None
 
-            retry_state = __retry_state_namespaces[namespace].get()(
+            retry_state = _get_retry_state_class(namespace)(
                 MonotonicClock(),
                 max_calls_total=max_calls_total,
                 retry_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
@@ -297,7 +301,7 @@ def retry_async(
 
             last_exception = None
 
-            retry_state = __retry_state_namespaces[namespace].get()(
+            retry_state = _get_retry_state_class(namespace)(
                 MonotonicClock(),
                 max_calls_total=max_calls_total,
                 retry_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,

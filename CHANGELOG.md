@@ -4,7 +4,7 @@ Changelog
 1.2.0
 -----
 
-Released 2022-05-17.
+Released 2022-05-18.
 
 **Breaking changes**:
 

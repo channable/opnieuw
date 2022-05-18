@@ -15,8 +15,10 @@ class AsyncTestCase(unittest.TestCase):
     def _new_loop(self) -> Iterator[asyncio.AbstractEventLoop]:
         policy = asyncio.get_event_loop_policy()
         loop = policy.new_event_loop()
-        yield loop
-        loop.close()
+        try:
+            yield loop
+        finally:
+            loop.close()
 
     def _run_async(self, fut: Awaitable[T]) -> T:
         with self._new_loop() as loop:

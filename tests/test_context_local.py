@@ -46,9 +46,11 @@ class AsyncBarrier:
 class TestAsyncContext(AsyncTestCase):
     counter: typing.Counter[str] = Counter()
 
+    MAX_TOTAL_CALLS = 3
+
     @retry_async(
         retry_on_exceptions=TypeError,
-        max_calls_total=3,
+        max_calls_total=MAX_TOTAL_CALLS,
         retry_window_after_first_call_in_seconds=3,
     )
     async def async_foo(self, counter_key: str) -> None:
@@ -57,47 +59,76 @@ class TestAsyncContext(AsyncTestCase):
         await asyncio.sleep(0)
         raise TypeError
 
+    async def _retry_immediately_coro(
+        self,
+        start_barrier: AsyncBarrier,
+        end_barrier: AsyncBarrier,
+        counter_key: str = "retry_immediately",
+    ) -> None:
+        with retry_immediately():
+            await start_barrier.wait()
+            start = time.monotonic()
+            try:
+                await asyncio.wait_for(self.async_foo(counter_key), timeout=0.5)
+            except TypeError:
+                end = time.monotonic()
+                runtime_seconds = end - start
+                self.assertLess(runtime_seconds, 0.5)
+                self.assertEqual(self.counter[counter_key], self.MAX_TOTAL_CALLS)
+            finally:
+                await end_barrier.wait()
+
+    async def _no_retry_coro(
+        self,
+        start_barrier: AsyncBarrier,
+        end_barrier: AsyncBarrier,
+        counter_key: str = "no_retry",
+    ) -> None:
+        with no_retries():
+            await start_barrier.wait()
+            start = time.monotonic()
+            try:
+                await asyncio.wait_for(self.async_foo(counter_key), timeout=0.5)
+            except TypeError:
+                end = time.monotonic()
+                runtime_seconds = end - start
+                self.assertLess(runtime_seconds, 0.5)
+                # We expect only one call since retries were disabled
+                self.assertEqual(self.counter[counter_key], 1)
+            finally:
+                await end_barrier.wait()
+
+    async def _no_retry_with_nested_immediately_retry_coro(
+        self,
+        start_barrier: AsyncBarrier,
+        end_barrier: AsyncBarrier,
+        counter_key: str = "no_retry_with_nested_retry_immediately",
+    ) -> None:
+        with no_retries():
+            nested_task = asyncio.create_task(
+                self._retry_immediately_coro(
+                    start_barrier, end_barrier, counter_key="nested_retry_immediately"
+                )
+            )
+            await start_barrier.wait()
+            start = time.monotonic()
+            try:
+                await asyncio.wait_for(self.async_foo(counter_key), timeout=0.5)
+                await nested_task
+            except TypeError:
+                end = time.monotonic()
+                runtime_seconds = end - start
+                self.assertLess(runtime_seconds, 0.5)
+                # We expect only one call since retries were disabled
+                self.assertEqual(self.counter[counter_key], 1)
+            finally:
+                await end_barrier.wait()
+
     def test_async_retry_state_context(self) -> None:
         """
         Test that the retry state is only modified in the context of an asyncio.Task
         and not globally.
         """
-
-        async def _retry_immediately_coro(
-            start_barrier: AsyncBarrier, end_barrier: AsyncBarrier
-        ) -> None:
-            counter_key = "retry_immediately"
-
-            with retry_immediately():
-                await start_barrier.wait()
-                start = time.monotonic()
-                try:
-                    await self.async_foo(counter_key)
-                except TypeError:
-                    end = time.monotonic()
-                    runtime_seconds = end - start
-                    self.assertLess(runtime_seconds, 0.5)
-                    self.assertEqual(self.counter[counter_key], 3)
-                finally:
-                    await end_barrier.wait()
-
-        async def _no_retry_coro(
-            start_barrier: AsyncBarrier, end_barrier: AsyncBarrier
-        ) -> None:
-            counter_key = "no_retry"
-
-            with no_retries():
-                await start_barrier.wait()
-                start = time.monotonic()
-                try:
-                    await self.async_foo(counter_key)
-                except TypeError:
-                    end = time.monotonic()
-                    runtime_seconds = end - start
-                    self.assertLess(runtime_seconds, 0.5)
-                    self.assertEqual(self.counter[counter_key], 1)
-                finally:
-                    await end_barrier.wait()
 
         async def _test_inner() -> None:
             self.counter = Counter()
@@ -106,14 +137,39 @@ class TestAsyncContext(AsyncTestCase):
             end_barrier = AsyncBarrier(2)
 
             await asyncio.gather(
-                _no_retry_coro(start_barrier, end_barrier),
-                _retry_immediately_coro(start_barrier, end_barrier),
+                self._no_retry_coro(start_barrier, end_barrier),
+                self._retry_immediately_coro(start_barrier, end_barrier),
             )
 
             # retry state should not leak between tasks
             assert self.counter.most_common() == [
                 ("retry_immediately", 3),
                 ("no_retry", 1),
+            ]
+
+        self._run_async(_test_inner())
+
+    def test_async_retry_state_context_nested(self) -> None:
+        """
+        Test that the retry state is only modified in the context of an asyncio.Task
+        and not globally. In this case the tasks are nested.
+        """
+
+        async def _test_inner() -> None:
+            self.counter = Counter()
+
+            start_barrier = AsyncBarrier(2)
+            end_barrier = AsyncBarrier(2)
+
+            await self._no_retry_with_nested_immediately_retry_coro(
+                start_barrier, end_barrier
+            )
+
+            # Nested task should be able to override retry state
+            # without leaking into parent, and vice versa
+            assert self.counter.most_common() == [
+                ("nested_retry_immediately", 3),
+                ("no_retry_with_nested_retry_immediately", 1),
             ]
 
         self._run_async(_test_inner())

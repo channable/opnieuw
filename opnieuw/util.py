@@ -10,7 +10,7 @@ class NoRetryState(RetryState):
 
 def no_retries(namespace: Optional[str] = None) -> ContextManager[None]:
     """
-    Contextmanager that disables retries for all `retry` and
+    Returns a contextmanager that disables retries for all `retry` and
     `retry_async` decorators with the provided namespace. None means all decorators
     without a provided namespace will not retry.
     """
