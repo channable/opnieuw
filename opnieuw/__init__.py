@@ -3,7 +3,7 @@
 #
 # Licensed under the 3-clause BSD license, see the LICENSE file in the repository root.
 
-from .retries import retry_async, retry
 from .exceptions import RetryException
+from .retries import retry_async, retry
 
 __all__ = ["retry_async", "retry", "RetryException"]

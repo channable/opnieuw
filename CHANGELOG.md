@@ -1,6 +1,21 @@
 Changelog
 =========
 
+1.2.0
+-----
+
+Released 2022-05-18.
+
+**Breaking changes**:
+
+- `RetryState` namespaces are now context-local instead of global. This ensures that modifying the
+  retry behavior doesn't bleed unexpectedly when used in concurrent code.
+
+Release highlights:
+
+- Expose `replace_retry_state` context manager to customize the retry behavior for a specific namespace.
+- Add `util.no_retries` context manager to disable retries for a specific namespace.
+
 1.1.0
 -----
 
