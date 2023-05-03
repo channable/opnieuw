@@ -11,23 +11,25 @@ import asyncio
 import functools
 import logging
 import random
+import sys
 import time
 from collections import defaultdict
-from collections.abc import Iterator
+from collections.abc import Awaitable, Callable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import Any, Awaitable, Callable, NamedTuple, TypeVar, Union, cast
+from typing import NamedTuple, TypeVar, Union
+
+if sys.version_info < (3, 10):
+    from typing_extensions import ParamSpec
+else:
+    from typing import ParamSpec
 
 from .clock import Clock, MonotonicClock
 
 logger = logging.getLogger(__name__)
 
-# Type variable to annotate decorators that take a function,
-# and return a function with the same signature.
-F = TypeVar("F", bound=Callable[..., Any])
-# Type variable to annotate decorators that take an async function,
-# and return a function with the same signature.
-AF = TypeVar("AF", bound=Callable[..., Awaitable[Any]])
+R = TypeVar("R")
+P = ParamSpec("P")
 
 
 def calculate_exponential_multiplier(
@@ -166,7 +168,7 @@ def retry(
     max_calls_total: int = 3,
     retry_window_after_first_call_in_seconds: int = 60,
     namespace: str | None = None,
-) -> Callable[[F], F]:
+) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """
     Retry a function using a Full Jitter exponential backoff.
 
@@ -221,9 +223,9 @@ def retry(
         https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
     """
 
-    def decorator(f: F) -> F:
+    def decorator(f: Callable[P, R]) -> Callable[P, R]:
         @functools.wraps(f)
-        def wrapper(*args: Any, **kwargs: Any) -> Any:
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
 
             last_exception = None
 
@@ -263,18 +265,10 @@ def retry(
                     )
                     time.sleep(sleep_seconds)
 
-            if last_exception is not None:
-                raise last_exception
+            assert last_exception is not None
+            raise last_exception
 
-        # `wrapper` has type `Callable[..., Any]`, whereas we should return something
-        # of type F, where F is some subtype of Callable[..., Any]. Note that inside
-        # this function, F is bound. That is, a particular type F has been fixed.
-        # The reason we use a type variable in the first place is not just to say
-        # "we take and return some callable function", but to say "this function
-        # returns something of exactly the same type as what you pass in". The thing
-        # you pass in has type F. And we construct `wrapped` in such a way to have
-        # type F too, therefore this cast is appropriate.
-        return cast(F, wrapper)
+        return wrapper
 
     return decorator
 
@@ -285,10 +279,10 @@ def retry_async(
     max_calls_total: int = 3,
     retry_window_after_first_call_in_seconds: int = 60,
     namespace: str | None = None,
-) -> Callable[[AF], AF]:
-    def decorator(f: AF) -> AF:
+) -> Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[R]]]:
+    def decorator(f: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
         @functools.wraps(f)
-        async def wrapper(*args: Any, **kwargs: Any) -> Any:
+        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
 
             last_exception = None
 
@@ -328,10 +322,10 @@ def retry_async(
                     )
                     await asyncio.sleep(sleep_seconds)
 
-            if last_exception is not None:
-                raise last_exception
+            assert last_exception is not None
+            raise last_exception
 
-        return cast(AF, wrapper)
+        return wrapper
 
     return decorator
 
