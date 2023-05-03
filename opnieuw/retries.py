@@ -4,28 +4,19 @@
 # Licensed under the 3-clause BSD license, see the LICENSE file in the repository root.
 
 # pylint: disable=raising-bad-type
+
+from __future__ import annotations
+
 import asyncio
 import functools
 import logging
 import random
 import time
 from collections import defaultdict
+from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import (
-    Awaitable,
-    cast,
-    Any,
-    Callable,
-    Iterator,
-    NamedTuple,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-    Dict,
-    Optional,
-)
+from typing import Any, Awaitable, Callable, NamedTuple, TypeVar, Union, cast
 
 from .clock import Clock, MonotonicClock
 
@@ -127,7 +118,7 @@ class RetryState:
             # attempt the actual function call
             yield DoCall()
 
-            wait_seconds = self.base_in_seconds * 2 ** attempt
+            wait_seconds = self.base_in_seconds * 2**attempt
             seconds_left = self.deadline_second - self.clock.seconds_since_epoch()
 
             # signal that we need to sleep
@@ -139,18 +130,18 @@ class RetryState:
             )
 
 
-__retry_state_namespaces: Dict[
-    Optional[str], ContextVar[Type[RetryState]]
-] = defaultdict(lambda: ContextVar("opnieuw_default_retry_state", default=RetryState))
+__retry_state_namespaces: dict[str | None, ContextVar[type[RetryState]]] = defaultdict(
+    lambda: ContextVar("opnieuw_default_retry_state", default=RetryState)
+)
 
 
-def _get_retry_state_class(namespace: Optional[str]) -> Type[RetryState]:
+def _get_retry_state_class(namespace: str | None) -> type[RetryState]:
     return __retry_state_namespaces[namespace].get()
 
 
 @contextmanager
 def replace_retry_state(
-    state: Type[RetryState], *, namespace: Optional[str] = None
+    state: type[RetryState], *, namespace: str | None = None
 ) -> Iterator[None]:
     """
     A context manager that replaces the state of the specified namespace with the
@@ -171,10 +162,10 @@ def replace_retry_state(
 
 def retry(
     *,
-    retry_on_exceptions: Union[Type[Exception], Tuple[Type[Exception], ...]],
+    retry_on_exceptions: type[Exception] | tuple[type[Exception], ...],
     max_calls_total: int = 3,
     retry_window_after_first_call_in_seconds: int = 60,
-    namespace: Optional[str] = None,
+    namespace: str | None = None,
 ) -> Callable[[F], F]:
     """
     Retry a function using a Full Jitter exponential backoff.
@@ -290,10 +281,10 @@ def retry(
 
 def retry_async(
     *,
-    retry_on_exceptions: Union[Type[Exception], Tuple[Type[Exception], ...]],
+    retry_on_exceptions: type[Exception] | tuple[type[Exception], ...],
     max_calls_total: int = 3,
     retry_window_after_first_call_in_seconds: int = 60,
-    namespace: Optional[str] = None,
+    namespace: str | None = None,
 ) -> Callable[[AF], AF]:
     def decorator(f: AF) -> AF:
         @functools.wraps(f)
