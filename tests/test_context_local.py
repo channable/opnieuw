@@ -1,15 +1,15 @@
+from __future__ import annotations
+
 import asyncio
 import threading
 import time
-import typing
 import unittest
 from collections import Counter
 
-from opnieuw.retries import retry_async, retry
+from opnieuw.retries import retry, retry_async
 from opnieuw.test_util import retry_immediately
 from opnieuw.util import no_retries
 from tests.utils import AsyncTestCase
-
 
 # The barriers are used to ensure all asyncio tasks/threads have their retry state modified
 # even while the other asyncio tasks/threads are still running.
@@ -44,7 +44,7 @@ class AsyncBarrier:
 
 
 class TestAsyncContext(AsyncTestCase):
-    counter: typing.Counter[str] = Counter()
+    counter: Counter[str] = Counter()
 
     MAX_TOTAL_CALLS = 3
 
@@ -176,7 +176,7 @@ class TestAsyncContext(AsyncTestCase):
 
 
 class TestThreadedContext(unittest.TestCase):
-    counter: typing.Counter[str] = Counter()
+    counter: Counter[str] = Counter()
 
     @retry(
         retry_on_exceptions=TypeError,

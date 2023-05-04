@@ -7,7 +7,7 @@ import time
 import unittest
 
 from opnieuw.clock import DummyClock, MonotonicClock
-from opnieuw.retries import RetryState, DoCall, retry
+from opnieuw.retries import DoCall, RetryState, retry
 from opnieuw.test_util import retry_immediately
 
 

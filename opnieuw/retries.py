@@ -226,7 +226,6 @@ def retry(
     def decorator(f: Callable[P, R]) -> Callable[P, R]:
         @functools.wraps(f)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-
             last_exception = None
 
             retry_state = _get_retry_state_class(namespace)(
@@ -236,7 +235,6 @@ def retry(
             )
 
             for retry_action in retry_state:
-
                 if isinstance(retry_action, DoCall):
                     try:
                         return f(*args, **kwargs)
@@ -283,7 +281,6 @@ def retry_async(
     def decorator(f: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
         @functools.wraps(f)
         async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-
             last_exception = None
 
             retry_state = _get_retry_state_class(namespace)(
@@ -293,7 +290,6 @@ def retry_async(
             )
 
             for retry_action in retry_state:
-
                 if isinstance(retry_action, DoCall):
                     try:
                         return await f(*args, **kwargs)

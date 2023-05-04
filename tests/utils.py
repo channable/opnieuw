@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import asyncio
 import unittest
+from collections.abc import Awaitable, Iterator
 from contextlib import contextmanager
-from typing import Iterator, Awaitable, TypeVar
+from typing import TypeVar
 
 T = TypeVar("T")
 
