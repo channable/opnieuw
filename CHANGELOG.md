@@ -14,6 +14,7 @@ Release highlights:
 
 - Rename `clock.TestClock` to `clock.DummyClock`.
 - Relint and upgrade the codebase.
+- Fix a typing issues for `retry_async`.
 
 1.2.1
 -----

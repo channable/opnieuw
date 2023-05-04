@@ -14,7 +14,7 @@ import random
 import sys
 import time
 from collections import defaultdict
-from collections.abc import Awaitable, Callable, Iterator
+from collections.abc import Callable, Coroutine, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from typing import NamedTuple, TypeVar, Union
@@ -277,8 +277,12 @@ def retry_async(
     max_calls_total: int = 3,
     retry_window_after_first_call_in_seconds: int = 60,
     namespace: str | None = None,
-) -> Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[R]]]:
-    def decorator(f: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
+) -> Callable[
+    [Callable[P, Coroutine[None, None, R]]], Callable[P, Coroutine[None, None, R]]
+]:
+    def decorator(
+        f: Callable[P, Coroutine[None, None, R]]
+    ) -> Callable[P, Coroutine[None, None, R]]:
         @functools.wraps(f)
         async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             last_exception = None
