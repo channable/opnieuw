@@ -1,6 +1,15 @@
 Changelog
 =========
 
+1.2.1
+-----
+
+Released 2023-05-04.
+
+Release highlights:
+
+- Use more modern typing concepts such as `ParamSpec`.
+
 1.2.0
 -----
 
