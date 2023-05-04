@@ -20,7 +20,7 @@ class MonotonicClock(Clock):
         return time.monotonic()
 
 
-class TestClock(Clock):
+class DummyClock(Clock):
     """Fake clock for use in tests."""
 
     def __init__(self) -> None:

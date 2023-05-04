@@ -1,6 +1,9 @@
-from typing import Iterator, Optional, ContextManager
+from __future__ import annotations
 
-from .retries import DoCall, RetryState, Action, replace_retry_state
+from collections.abc import Iterator
+from contextlib import AbstractContextManager
+
+from .retries import Action, DoCall, RetryState, replace_retry_state
 
 
 class NoRetryState(RetryState):
@@ -8,7 +11,7 @@ class NoRetryState(RetryState):
         yield DoCall()
 
 
-def no_retries(namespace: Optional[str] = None) -> ContextManager[None]:
+def no_retries(namespace: str | None = None) -> AbstractContextManager[None]:
     """
     Returns a contextmanager that disables retries for all `retry` and
     `retry_async` decorators with the provided namespace. None means all decorators

@@ -1,6 +1,30 @@
 Changelog
 =========
 
+2.0.0
+-----
+
+Released 2022-05-18.
+
+**Breaking changes**:
+
+- `clock.TestClock` was renamed to `clock.DummyClock`.
+
+Release highlights:
+
+- Rename `clock.TestClock` to `clock.DummyClock`.
+- Relint and upgrade the codebase.
+- Fix a typing issues for `retry_async`.
+
+1.2.1
+-----
+
+Released 2023-05-04.
+
+Release highlights:
+
+- Use more modern typing concepts such as `ParamSpec`.
+
 1.2.0
 -----
 

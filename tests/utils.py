@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import asyncio
 import unittest
+from collections.abc import Coroutine, Iterator
 from contextlib import contextmanager
-from typing import Iterator, Awaitable, TypeVar
+from typing import TypeVar
 
 T = TypeVar("T")
 
@@ -20,6 +23,6 @@ class AsyncTestCase(unittest.TestCase):
         finally:
             loop.close()
 
-    def _run_async(self, fut: Awaitable[T]) -> T:
+    def _run_async(self, fut: Coroutine[None, None, T]) -> T:
         with self._new_loop() as loop:
             return loop.run_until_complete(fut)

@@ -14,7 +14,7 @@ import random
 import sys
 import time
 from collections import defaultdict
-from collections.abc import Awaitable, Callable, Iterator
+from collections.abc import Callable, Coroutine, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from typing import NamedTuple, TypeVar, Union
@@ -226,7 +226,6 @@ def retry(
     def decorator(f: Callable[P, R]) -> Callable[P, R]:
         @functools.wraps(f)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-
             last_exception = None
 
             retry_state = _get_retry_state_class(namespace)(
@@ -236,7 +235,6 @@ def retry(
             )
 
             for retry_action in retry_state:
-
                 if isinstance(retry_action, DoCall):
                     try:
                         return f(*args, **kwargs)
@@ -279,11 +277,14 @@ def retry_async(
     max_calls_total: int = 3,
     retry_window_after_first_call_in_seconds: int = 60,
     namespace: str | None = None,
-) -> Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[R]]]:
-    def decorator(f: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
+) -> Callable[
+    [Callable[P, Coroutine[None, None, R]]], Callable[P, Coroutine[None, None, R]]
+]:
+    def decorator(
+        f: Callable[P, Coroutine[None, None, R]]
+    ) -> Callable[P, Coroutine[None, None, R]]:
         @functools.wraps(f)
         async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-
             last_exception = None
 
             retry_state = _get_retry_state_class(namespace)(
@@ -293,7 +294,6 @@ def retry_async(
             )
 
             for retry_action in retry_state:
-
                 if isinstance(retry_action, DoCall):
                     try:
                         return await f(*args, **kwargs)
