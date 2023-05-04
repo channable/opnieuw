@@ -6,7 +6,7 @@
 import time
 import unittest
 
-from opnieuw.clock import TestClock, MonotonicClock
+from opnieuw.clock import DummyClock, MonotonicClock
 from opnieuw.retries import RetryState, DoCall, retry
 from opnieuw.test_util import retry_immediately
 
@@ -25,7 +25,7 @@ class TestRetryState(unittest.TestCase):
 
 class TestRetryClock(unittest.TestCase):
     def setUp(self) -> None:
-        self.clock = TestClock()
+        self.clock = DummyClock()
 
     def test_negative_time_value(self) -> None:
         try:
