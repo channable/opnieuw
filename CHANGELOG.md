@@ -1,6 +1,20 @@
 Changelog
 =========
 
+2.0.0
+-----
+
+Released 2022-05-18.
+
+**Breaking changes**:
+
+- `clock.TestClock` was renamed to `clock.DummyClock`.
+
+Release highlights:
+
+- Rename `clock.TestClock` to `clock.DummyClock`.
+- Relint and upgrade the codebase.
+
 1.2.1
 -----
 
