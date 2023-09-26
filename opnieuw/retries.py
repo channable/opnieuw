@@ -234,13 +234,24 @@ def retry(
                 retry_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
             )
 
+            last_exception = None
             for retry_action in retry_state:
                 if isinstance(retry_action, DoCall):
                     try:
                         return f(*args, **kwargs)
 
                     except retry_on_exceptions as e:
+                        # Set last_exception to be the cause so we chain the exceptions
+                        # together in the final traceback.
+                        if last_exception is not None:
+                            e.__cause__ = last_exception
                         last_exception = e
+                    except Exception as e:
+                        # Make sure to set the last_exception as the cause of every exception,
+                        # even if it was not in the retry_on_exceptions
+                        if last_exception is not None:
+                            e.__cause__ = last_exception
+                        raise e
 
                 elif isinstance(retry_action, DoWait):
                     sleep_seconds = random.uniform(

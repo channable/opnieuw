@@ -110,6 +110,24 @@ class TestRetryDecorator(unittest.TestCase):
         with retry_immediately("bar_retry"):
             self.test_retry_with_waits()
 
+    @retry(
+        retry_on_exceptions=TypeError,
+        max_calls_total=3,
+        retry_window_after_first_call_in_seconds=1,
+    )
+    def raise_depending_on_counter(self) -> None:
+        self.counter += 1
+        if self.counter >= 3:
+            raise ValueError
+        raise TypeError
+
+    def test_exception_chaining(self) -> None:
+        try:
+            self.raise_depending_on_counter()
+        except ValueError as e:
+            self.assertEqual(e.__cause__.__class__, TypeError)
+            self.assertEqual(e.__cause__.__cause__.__class__, TypeError)
+
 
 if __name__ == "__main__":
     unittest.main()
