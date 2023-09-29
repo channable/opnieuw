@@ -7,7 +7,7 @@ import time
 import unittest
 
 from opnieuw.clock import DummyClock, MonotonicClock
-from opnieuw.retries import DoCall, RetryState, retry
+from opnieuw.retries import DoWait, RetryState, retry
 from opnieuw.test_util import retry_immediately
 
 
@@ -19,8 +19,9 @@ class TestRetryState(unittest.TestCase):
             retry_window_after_first_call_in_seconds=3,
         )
 
-        for rt in retry_state:
-            self.assertIsInstance(rt, DoCall)
+        for _ in retry_state:
+            # This kind of RetryState should yield no states
+            assert False
 
 
 class TestRetryClock(unittest.TestCase):

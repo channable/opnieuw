@@ -3,13 +3,14 @@ from __future__ import annotations
 from collections.abc import Iterator
 from contextlib import AbstractContextManager
 
-from .retries import Action, DoCall, RetryState, replace_retry_state
+from .retries import DoWait, RetryState, replace_retry_state
 
 
 class WaitLessRetryState(RetryState):
-    def __iter__(self) -> Iterator[Action]:
+    def __iter__(self) -> Iterator[DoWait]:
         for _ in range(self.max_calls_total):
-            yield DoCall()
+            # Yield a DoWait that leads to no waiting
+            yield DoWait(0, 0, 0, 0)
 
 
 def retry_immediately(namespace: str | None = None) -> AbstractContextManager[None]:

@@ -1,6 +1,24 @@
 Changelog
 =========
 
+3.0.0
+-----
+
+Work in progress.
+
+**Breaking changes**:
+
+- `DoCall` has been removed. `retry` and `retry_async` will now execute the decorated
+  function immediately and wait as defined by `DoWait`. If you need an immediate retry,
+  you can `yield DoWait(0, 0, 0, 0)`.`
+- `Action` has been removed as there is now only a `DoWait` class.
+
+Release highlights:
+
+- Remove `DoCall` and only have a `DoWait` to simplify the retyring logic.
+- Remove `Action` as it is no longer required.
+
+
 2.0.0
 -----
 

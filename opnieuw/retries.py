@@ -17,7 +17,7 @@ from collections import defaultdict
 from collections.abc import Callable, Coroutine, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import NamedTuple, TypeVar, Union
+from typing import NamedTuple, TypeVar
 
 if sys.version_info < (3, 10):
     from typing_extensions import ParamSpec
@@ -68,15 +68,9 @@ def calculate_exponential_multiplier(
     return multiplier
 
 
-class DoCall:
-    """
-    An instance which tells the retry decorator to attempt the function.
-    """
-
-
 class DoWait(NamedTuple):
     """
-    An instance which tells the retry decorator to wait.
+    An instance which tells the retry decorator how long to wait.
 
     This is used to calculate the sleep time in seconds for in the retry decorator.
     """
@@ -89,9 +83,6 @@ class DoWait(NamedTuple):
     max_seconds: float
     # Number of seconds left before the user's requested seconds are exceeded
     seconds_left: float
-
-
-Action = Union[DoCall, DoWait]
 
 
 class RetryState:
@@ -115,15 +106,11 @@ class RetryState:
             max_calls_total, retry_window_after_first_call_in_seconds
         )
 
-    def __iter__(self) -> Iterator[Action]:
+    def __iter__(self) -> Iterator[DoWait]:
         for attempt in range(0, self.max_calls_total):
-            # attempt the actual function call
-            yield DoCall()
-
             wait_seconds = self.base_in_seconds * 2**attempt
             seconds_left = self.deadline_second - self.clock.seconds_since_epoch()
 
-            # signal that we need to sleep
             yield DoWait(
                 attempts_so_far=attempt + 1,
                 min_seconds=0.0,
@@ -235,33 +222,31 @@ def retry(
             )
 
             for retry_action in retry_state:
-                if isinstance(retry_action, DoCall):
-                    try:
-                        return f(*args, **kwargs)
+                try:
+                    return f(*args, **kwargs)
 
-                    except retry_on_exceptions as e:
-                        last_exception = e
+                except retry_on_exceptions as e:
+                    last_exception = e
 
-                elif isinstance(retry_action, DoWait):
-                    sleep_seconds = random.uniform(
-                        retry_action.min_seconds, retry_action.max_seconds
-                    )
+                sleep_seconds = random.uniform(
+                    retry_action.min_seconds, retry_action.max_seconds
+                )
 
-                    if sleep_seconds > retry_action.seconds_left:
-                        logger.debug(
-                            "Next attempt would be after retry deadline. No point retrying."
-                        )
-
-                        assert (
-                            last_exception is not None
-                        ), "Exception expected if we have a DoWait retry action!"
-                        raise last_exception
-
+                if sleep_seconds > retry_action.seconds_left:
                     logger.debug(
-                        f"Sleeping for {sleep_seconds:.3f} seconds after "
-                        f"attempt {retry_action.attempts_so_far}"
+                        "Next attempt would be after retry deadline. No point retrying."
                     )
-                    time.sleep(sleep_seconds)
+
+                    assert (
+                        last_exception is not None
+                    ), "Exception expected if we have a DoWait retry action!"
+                    raise last_exception
+
+                logger.debug(
+                    f"Sleeping for {sleep_seconds:.3f} seconds after "
+                    f"attempt {retry_action.attempts_so_far}"
+                )
+                time.sleep(sleep_seconds)
 
             assert last_exception is not None
             raise last_exception
@@ -294,33 +279,31 @@ def retry_async(
             )
 
             for retry_action in retry_state:
-                if isinstance(retry_action, DoCall):
-                    try:
-                        return await f(*args, **kwargs)
+                try:
+                    return await f(*args, **kwargs)
 
-                    except retry_on_exceptions as e:
-                        last_exception = e
+                except retry_on_exceptions as e:
+                    last_exception = e
 
-                elif isinstance(retry_action, DoWait):
-                    sleep_seconds = random.uniform(
-                        retry_action.min_seconds, retry_action.max_seconds
-                    )
+                sleep_seconds = random.uniform(
+                    retry_action.min_seconds, retry_action.max_seconds
+                )
 
-                    if sleep_seconds > retry_action.seconds_left:
-                        logger.debug(
-                            "Next attempt would be after retry deadline. No point retrying."
-                        )
-
-                        assert (
-                            last_exception is not None
-                        ), "Exception expected if we have a DoWait retry action!"
-                        raise last_exception
-
+                if sleep_seconds > retry_action.seconds_left:
                     logger.debug(
-                        f"Sleeping for {sleep_seconds:.3f} seconds after "
-                        f"attempt {retry_action.attempts_so_far}"
+                        "Next attempt would be after retry deadline. No point retrying."
                     )
-                    await asyncio.sleep(sleep_seconds)
+
+                    assert (
+                        last_exception is not None
+                    ), "Exception expected if we have a DoWait retry action!"
+                    raise last_exception
+
+                logger.debug(
+                    f"Sleeping for {sleep_seconds:.3f} seconds after "
+                    f"attempt {retry_action.attempts_so_far}"
+                )
+                await asyncio.sleep(sleep_seconds)
 
             assert last_exception is not None
             raise last_exception
