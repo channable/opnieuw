@@ -107,6 +107,12 @@ class RetryState:
         )
 
     def __iter__(self) -> Iterator[DoWait]:
+        """
+        Yield collections of info that tell the retry decorators how long to wait.
+
+        The retry decorators will execute the function once for every DoWait instance
+        they encounter.
+        """
         for attempt in range(0, self.max_calls_total):
             wait_seconds = self.base_in_seconds * 2**attempt
             seconds_left = self.deadline_second - self.clock.seconds_since_epoch()
