@@ -17,6 +17,9 @@ Release highlights:
 - Remove `DoCall`, `DoWait` and `RetryState`.
 - Use `BackoffCalculator` to keep track of the time to wait between retries and refactor
   retrying logic accordingly.
+- Add chaining of previously retried exceptions. `opnieuw` will now correctly set the
+  `__cause__` attribute of any exception leaving the decorator with a chain of all the
+  previously retried exceptions.
 
 
 2.0.0
