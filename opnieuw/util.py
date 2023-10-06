@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from contextlib import AbstractContextManager
 
-from .retries import WaitState, replace_wait_state
+from .retries import BackoffCalculator, replace_backoff_calculator
 
 
-class NoRetryState(WaitState):
-    def get_seconds_to_wait(self) -> float | None:
+class NoRetryBackoff(BackoffCalculator):
+    def get_backoff(self) -> float | None:
         return None
 
 
@@ -16,4 +16,4 @@ def no_retries(namespace: str | None = None) -> AbstractContextManager[None]:
     `retry_async` decorators with the provided namespace. None means all decorators
     without a provided namespace will not retry.
     """
-    return replace_wait_state(NoRetryState, namespace=namespace)
+    return replace_backoff_calculator(NoRetryBackoff, namespace=namespace)

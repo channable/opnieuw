@@ -7,20 +7,20 @@ import time
 import unittest
 
 from opnieuw.clock import DummyClock, MonotonicClock
-from opnieuw.retries import WaitState, retry
+from opnieuw.retries import BackoffCalculator, retry
 from opnieuw.test_util import retry_immediately
 
 
-class TestRetryState(unittest.TestCase):
+class TestBackoffCalculator(unittest.TestCase):
     def test_never_stop(self) -> None:
-        retry_state = WaitState(
+        retry_state = BackoffCalculator(
             MonotonicClock(),
-            max_calls_total=0,
-            retry_window_after_first_call_in_seconds=3,
+            max_backoffs_total=0,
+            backoff_window_after_first_call_in_seconds=3,
         )
 
-        # This kind of WaitState should only return None
-        self.assertEqual(None, retry_state.get_seconds_to_wait())
+        # This kind of BackoffCalculator should only return None
+        self.assertEqual(None, retry_state.get_backoff())
 
 
 class TestRetryClock(unittest.TestCase):

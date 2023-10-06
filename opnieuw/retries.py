@@ -68,80 +68,85 @@ def calculate_exponential_multiplier(
     return multiplier
 
 
-class WaitState:
+class BackoffCalculator:
     """
-    Calculate how often and how long to wait depending on input parameters.
+    Class responsible for calculating backoff periods.
+
+    Will consider the maximum amount of backoffs and a maximum backoff window.
     """
 
     def __init__(
         self,
         clock: Clock,
-        max_calls_total: int,
-        retry_window_after_first_call_in_seconds: int,
+        max_backoffs_total: int,
+        backoff_window_after_first_call_in_seconds: int,
     ) -> None:
         self.clock = clock
-        self.max_calls_total = max_calls_total
+        self.max_backoffs_total = max_backoffs_total
         self.deadline_second = (
-            self.clock.seconds_since_epoch() + retry_window_after_first_call_in_seconds
+            self.clock.seconds_since_epoch()
+            + backoff_window_after_first_call_in_seconds
         )
-
         self.base_in_seconds = calculate_exponential_multiplier(
-            max_calls_total, retry_window_after_first_call_in_seconds
+            max_backoffs_total, backoff_window_after_first_call_in_seconds
         )
-        self.waits = 0
+        self.backoffs = 0
 
-    def get_seconds_to_wait(self) -> float | None:
+    def get_backoff(self) -> float | None:
         """
-        Return the amount of seconds to wait before a next call.
+        Return the amount of seconds to backoff.
 
-        None indicates that there should be no more waits.
+        None indicates that there should be no more backoffs. The retry decorators
+        are responsible for raising the last exception if None is returned.
         """
-        wait_seconds = self.base_in_seconds * 2**self.waits
-        jittered_wait = random.uniform(0.0, wait_seconds)
+        backoff_seconds = self.base_in_seconds * 2**self.backoffs
+        jittered_backoff = random.uniform(0.0, backoff_seconds)
 
-        self.waits += 1
-        if self.waits >= self.max_calls_total:
-            logger.debug(f"Used up all {self.max_calls_total} retries.")
+        self.backoffs += 1
+        if self.backoffs >= self.max_backoffs_total:
+            logger.debug(f"Used up all {self.backoffs} retries.")
             return None
 
-        if jittered_wait > self.deadline_second - self.clock.seconds_since_epoch():
+        if jittered_backoff > self.deadline_second - self.clock.seconds_since_epoch():
             logger.debug("Next attempt would be after retry deadline, not retrying.")
             return None
 
         logger.debug(
-            f"Sleep for {jittered_wait:.3f} seconds after attempt {self.waits}"
+            f"Backoff for {jittered_backoff:.3f} seconds after attempt {self.backoffs}"
         )
-        return jittered_wait
+        return jittered_backoff
 
 
-__wait_state_namespaces: dict[str | None, ContextVar[type[WaitState]]] = defaultdict(
-    lambda: ContextVar("opnieuw_default_retry_state", default=WaitState)
+__backoff_namespaces: dict[
+    str | None, ContextVar[type[BackoffCalculator]]
+] = defaultdict(
+    lambda: ContextVar("opnieuw_default_backoff_state", default=BackoffCalculator)
 )
 
 
-def _get_wait_state_class(namespace: str | None) -> type[WaitState]:
-    return __wait_state_namespaces[namespace].get()
+def _get_backoff_calculator_class(namespace: str | None) -> type[BackoffCalculator]:
+    return __backoff_namespaces[namespace].get()
 
 
 @contextmanager
-def replace_wait_state(
-    state: type[WaitState], *, namespace: str | None = None
+def replace_backoff_calculator(
+    state: type[BackoffCalculator], *, namespace: str | None = None
 ) -> Iterator[None]:
     """
-    A context manager that replaces the state of the specified namespace with the
-    given `WaitState`.
-    This can be useful to customize the retry behavior, such as disabling the sleep interval during
-    tests (see `opnieuw.test_util.retry_immediately`).
+    A context manager that replaces calculator of the specified namespace with the
+    given `BackoffCalculator`.
+    This can be useful to customize the retry behavior, such as disabling the sleep
+    interval during tests (see `opnieuw.test_util.retry_immediately`).
 
-    Note: the wait state is context-local, meaning that changing the state in a thread or
-    asyncio task will not bleed to other threads or asyncio tasks.
+    Note: the backoff calculator is context-local, meaning that changing the calculator
+    in a thread or asyncio task will not bleed to other threads or asyncio tasks.
     See https://docs.python.org/3/library/contextvars.html for more details.
     """
-    token = __wait_state_namespaces[namespace].set(state)
+    token = __backoff_namespaces[namespace].set(state)
     try:
         yield
     finally:
-        __wait_state_namespaces[namespace].reset(token)
+        __backoff_namespaces[namespace].reset(token)
 
 
 def retry(
@@ -207,22 +212,20 @@ def retry(
 
     def decorator(f: Callable[P, R]) -> Callable[P, R]:
         @functools.wraps(f)
-        def wrapper(
-            *args: P.args,
-            **kwargs: P.kwargs,
-        ) -> R:
-            wait_state = _get_wait_state_class(namespace)(
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            backoff_calculator = _get_backoff_calculator_class(namespace)(
                 MonotonicClock(),
-                max_calls_total=max_calls_total,
-                retry_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
+                max_backoffs_total=max_calls_total,
+                backoff_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
             )
+
             while True:
                 try:
                     return f(*args, **kwargs)
                 except retry_on_exceptions as e:
                     last_exception = e
 
-                    sleep_seconds = wait_state.get_seconds_to_wait()
+                    sleep_seconds = backoff_calculator.get_backoff()
                     if sleep_seconds is None:
                         raise last_exception
 
@@ -247,10 +250,10 @@ def retry_async(
     ) -> Callable[P, Coroutine[None, None, R]]:
         @functools.wraps(f)
         async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-            wait_state = _get_wait_state_class(namespace)(
+            backoff_calculator = _get_backoff_calculator_class(namespace)(
                 MonotonicClock(),
-                max_calls_total=max_calls_total,
-                retry_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
+                max_backoffs_total=max_calls_total,
+                backoff_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
             )
 
             while True:
@@ -259,7 +262,7 @@ def retry_async(
                 except retry_on_exceptions as e:
                     last_exception = e
 
-                    sleep_seconds = wait_state.get_seconds_to_wait()
+                    sleep_seconds = backoff_calculator.get_backoff()
                     if sleep_seconds is None:
                         raise last_exception
 
