@@ -1,6 +1,24 @@
 Changelog
 =========
 
+3.0.0
+-----
+
+Work in progress.
+
+**Breaking changes**:
+
+- `DoCall`, `DoWait` and `RetryState` have been removed. They have been replaced by
+  `BackoffCalculator`. This class exposes a method `get_backoff`. This method should return either
+  a `float` representing the time to wait or `None` if there should be no more retries/waits.
+
+Release highlights:
+
+- Remove `DoCall`, `DoWait` and `RetryState`.
+- Use `BackoffCalculator` to keep track of the time to wait between retries and refactor
+  retrying logic accordingly.
+
+
 2.0.0
 -----
 

@@ -17,7 +17,7 @@ from collections import defaultdict
 from collections.abc import Callable, Coroutine, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import NamedTuple, TypeVar, Union
+from typing import TypeVar
 
 if sys.version_info < (3, 10):
     from typing_extensions import ParamSpec
@@ -68,35 +68,11 @@ def calculate_exponential_multiplier(
     return multiplier
 
 
-class DoCall:
+class BackoffCalculator:
     """
-    An instance which tells the retry decorator to attempt the function.
-    """
+    Class responsible for calculating backoff periods.
 
-
-class DoWait(NamedTuple):
-    """
-    An instance which tells the retry decorator to wait.
-
-    This is used to calculate the sleep time in seconds for in the retry decorator.
-    """
-
-    # Number of calls made so far.
-    attempts_so_far: int
-    # Wait at least this much.
-    min_seconds: float
-    # Wait at most this much.
-    max_seconds: float
-    # Number of seconds left before the user's requested seconds are exceeded
-    seconds_left: float
-
-
-Action = Union[DoCall, DoWait]
-
-
-class RetryState:
-    """
-    Calculate whether to do the function call or to sleep for retrying.
+    Will consider the maximum amount of backoffs and a maximum backoff window.
     """
 
     def __init__(
@@ -110,56 +86,66 @@ class RetryState:
         self.deadline_second = (
             self.clock.seconds_since_epoch() + retry_window_after_first_call_in_seconds
         )
-
         self.base_in_seconds = calculate_exponential_multiplier(
             max_calls_total, retry_window_after_first_call_in_seconds
         )
+        self.backoffs = 0
 
-    def __iter__(self) -> Iterator[Action]:
-        for attempt in range(0, self.max_calls_total):
-            # attempt the actual function call
-            yield DoCall()
+    def get_backoff(self) -> float | None:
+        """
+        Return the amount of seconds to backoff.
 
-            wait_seconds = self.base_in_seconds * 2**attempt
-            seconds_left = self.deadline_second - self.clock.seconds_since_epoch()
+        None indicates that there should be no more backoffs. The retry decorators
+        are responsible for raising the last exception if None is returned.
+        """
+        backoff_seconds = self.base_in_seconds * 2**self.backoffs
+        jittered_backoff = random.uniform(0.0, backoff_seconds)
 
-            # signal that we need to sleep
-            yield DoWait(
-                attempts_so_far=attempt + 1,
-                min_seconds=0.0,
-                max_seconds=wait_seconds,
-                seconds_left=seconds_left,
-            )
+        self.backoffs += 1
+        if self.backoffs >= self.max_calls_total:
+            logger.debug(f"Used up all {self.backoffs} retries.")
+            return None
+
+        if jittered_backoff > self.deadline_second - self.clock.seconds_since_epoch():
+            logger.debug("Next attempt would be after retry deadline, not retrying.")
+            return None
+
+        logger.debug(
+            f"Backoff for {jittered_backoff:.3f} seconds after attempt {self.backoffs}"
+        )
+        return jittered_backoff
 
 
-__retry_state_namespaces: dict[str | None, ContextVar[type[RetryState]]] = defaultdict(
-    lambda: ContextVar("opnieuw_default_retry_state", default=RetryState)
+__backoff_namespaces: dict[
+    str | None, ContextVar[type[BackoffCalculator]]
+] = defaultdict(
+    lambda: ContextVar("opnieuw_default_backoff_state", default=BackoffCalculator)
 )
 
 
-def _get_retry_state_class(namespace: str | None) -> type[RetryState]:
-    return __retry_state_namespaces[namespace].get()
+def _get_backoff_calculator_class(namespace: str | None) -> type[BackoffCalculator]:
+    return __backoff_namespaces[namespace].get()
 
 
 @contextmanager
-def replace_retry_state(
-    state: type[RetryState], *, namespace: str | None = None
+def replace_backoff_calculator(
+    state: type[BackoffCalculator], *, namespace: str | None = None
 ) -> Iterator[None]:
     """
-    A context manager that replaces the state of the specified namespace with the
-    given `RetryState`.
-    This can be useful to customize the retry behavior, such as disabling the sleep interval during
-    tests (see `opnieuw.test_util.retry_immediately`).
+    A context manager that replaces calculator of the specified namespace with the
+    given `BackoffCalculator`.
+    This can be useful to customize the retry behavior, such as disabling the sleep
+    interval during tests (see `opnieuw.test_util.retry_immediately`).
 
-    Note: the retry state is context-local, meaning that changing the state in a thread or
-    asyncio task will not bleed to other threads or asyncio tasks.
+    Note: the backoff calculator is context-local, meaning that changing the calculator
+    in a thread or asyncio task will not bleed to other threads or asyncio tasks.
     See https://docs.python.org/3/library/contextvars.html for more details.
     """
-    token = __retry_state_namespaces[namespace].set(state)
+    token = __backoff_namespaces[namespace].set(state)
     try:
         yield
     finally:
-        __retry_state_namespaces[namespace].reset(token)
+        __backoff_namespaces[namespace].reset(token)
 
 
 def retry(
@@ -226,45 +212,23 @@ def retry(
     def decorator(f: Callable[P, R]) -> Callable[P, R]:
         @functools.wraps(f)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-            last_exception = None
-
-            retry_state = _get_retry_state_class(namespace)(
+            backoff_calculator = _get_backoff_calculator_class(namespace)(
                 MonotonicClock(),
                 max_calls_total=max_calls_total,
                 retry_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
             )
 
-            for retry_action in retry_state:
-                if isinstance(retry_action, DoCall):
-                    try:
-                        return f(*args, **kwargs)
+            while True:
+                try:
+                    return f(*args, **kwargs)
+                except retry_on_exceptions as e:
+                    last_exception = e
 
-                    except retry_on_exceptions as e:
-                        last_exception = e
-
-                elif isinstance(retry_action, DoWait):
-                    sleep_seconds = random.uniform(
-                        retry_action.min_seconds, retry_action.max_seconds
-                    )
-
-                    if sleep_seconds > retry_action.seconds_left:
-                        logger.debug(
-                            "Next attempt would be after retry deadline. No point retrying."
-                        )
-
-                        assert (
-                            last_exception is not None
-                        ), "Exception expected if we have a DoWait retry action!"
+                    sleep_seconds = backoff_calculator.get_backoff()
+                    if sleep_seconds is None:
                         raise last_exception
 
-                    logger.debug(
-                        f"Sleeping for {sleep_seconds:.3f} seconds after "
-                        f"attempt {retry_action.attempts_so_far}"
-                    )
                     time.sleep(sleep_seconds)
-
-            assert last_exception is not None
-            raise last_exception
 
         return wrapper
 
@@ -285,45 +249,23 @@ def retry_async(
     ) -> Callable[P, Coroutine[None, None, R]]:
         @functools.wraps(f)
         async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-            last_exception = None
-
-            retry_state = _get_retry_state_class(namespace)(
+            backoff_calculator = _get_backoff_calculator_class(namespace)(
                 MonotonicClock(),
                 max_calls_total=max_calls_total,
                 retry_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
             )
 
-            for retry_action in retry_state:
-                if isinstance(retry_action, DoCall):
-                    try:
-                        return await f(*args, **kwargs)
+            while True:
+                try:
+                    return await f(*args, **kwargs)
+                except retry_on_exceptions as e:
+                    last_exception = e
 
-                    except retry_on_exceptions as e:
-                        last_exception = e
-
-                elif isinstance(retry_action, DoWait):
-                    sleep_seconds = random.uniform(
-                        retry_action.min_seconds, retry_action.max_seconds
-                    )
-
-                    if sleep_seconds > retry_action.seconds_left:
-                        logger.debug(
-                            "Next attempt would be after retry deadline. No point retrying."
-                        )
-
-                        assert (
-                            last_exception is not None
-                        ), "Exception expected if we have a DoWait retry action!"
+                    sleep_seconds = backoff_calculator.get_backoff()
+                    if sleep_seconds is None:
                         raise last_exception
 
-                    logger.debug(
-                        f"Sleeping for {sleep_seconds:.3f} seconds after "
-                        f"attempt {retry_action.attempts_so_far}"
-                    )
                     await asyncio.sleep(sleep_seconds)
-
-            assert last_exception is not None
-            raise last_exception
 
         return wrapper
 
