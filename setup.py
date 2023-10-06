@@ -28,7 +28,7 @@ setuptools.setup(
         "License :: OSI Approved :: BSD License",
         "Operating System :: OS Independent",
     ],
-    python_requires=">=3.7",
+    python_requires=">=3.8",
     install_requires=[
         "typing-extensions>=3.10.0;python_version<'3.10'",
     ],

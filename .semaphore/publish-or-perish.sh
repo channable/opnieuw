@@ -7,7 +7,7 @@
 set -efuo pipefail
 
 git fetch --tags
-TAG=v$(python3.7 setup.py --version)
+TAG=v$(python3.8 setup.py --version)
 # If the tag already exist this command will fail and the job will exit
 # without raising an error. Otherwise, we will build the project,
 # publish to PyPi, and push the tag to github.
