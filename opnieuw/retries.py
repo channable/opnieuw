@@ -230,9 +230,8 @@ def retry(
                     if not isinstance(e, retry_on_exceptions):
                         raise
 
-                    sleep_seconds = backoff_calculator.get_backoff()
-                    if sleep_seconds is None:
-                        raise last_exception
+                    if (sleep_seconds := backoff_calculator.get_backoff()) is None:
+                        raise
 
                     time.sleep(sleep_seconds)
 
@@ -273,9 +272,8 @@ def retry_async(
                     if not isinstance(e, retry_on_exceptions):
                         raise
 
-                    sleep_seconds = backoff_calculator.get_backoff()
-                    if sleep_seconds is None:
-                        raise last_exception
+                    if (sleep_seconds := backoff_calculator.get_backoff()) is None:
+                        raise
 
                     await asyncio.sleep(sleep_seconds)
 
