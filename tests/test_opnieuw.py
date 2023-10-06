@@ -3,8 +3,10 @@
 #
 # Licensed under the 3-clause BSD license, see the LICENSE file in the repository root.
 
+import random
 import time
 import unittest
+from unittest import mock
 
 from opnieuw.clock import DummyClock, MonotonicClock
 from opnieuw.retries import BackoffCalculator, retry
@@ -57,17 +59,18 @@ class TestRetryDecorator(unittest.TestCase):
         except Exception as e:
             self.assertTrue(isinstance(e, TypeError))
 
-    def test_retry_with_waits(self) -> None:
-        start = time.monotonic()
+    def _retry_with_waits(self) -> None:
         self.counter = 0
 
         try:
             self.foo()
-        except TypeError as e:
-            end = time.monotonic()
-            runtime_seconds = end - start
-            self.assertGreater(runtime_seconds, 0.3)
+        except TypeError:
             self.assertEqual(self.counter, 3)
+
+    @mock.patch.object(random, "uniform", return_value=0.1)
+    def test_retry_with_waits(self, mocked_random) -> None:
+        self._retry_with_waits()
+        mocked_random.assert_called()
 
     def test_retry_immediately_global(self) -> None:
         start = time.monotonic()
@@ -104,13 +107,14 @@ class TestRetryDecorator(unittest.TestCase):
                 self.assertLess(runtime_seconds, 1)
                 self.assertEqual(self.counter, 60)
 
-    def test_mixed_states(self) -> None:
+    @mock.patch.object(random, "uniform", return_value=0.1)
+    def test_mixed_states(self, mocked_random) -> None:
         with retry_immediately():
-            self.assertRaises(AssertionError, self.test_retry_with_waits)
+            self._retry_with_waits()
+            mocked_random.assert_not_called()
         with retry_immediately("bar_retry"):
-            self.test_retry_with_waits()
-
-    from opnieuw import retry
+            self._retry_with_waits()
+            mocked_random.assert_called()
 
 
 class TestExceptionChaining(unittest.TestCase):
