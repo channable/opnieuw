@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-from collections.abc import Iterator
 from contextlib import AbstractContextManager
 
-from .retries import Action, DoCall, RetryState, replace_retry_state
+from .retries import WaitState, replace_wait_state
 
 
-class WaitLessRetryState(RetryState):
-    def __iter__(self) -> Iterator[Action]:
-        for _ in range(self.max_calls_total):
-            yield DoCall()
+class WaitLessWaitState(WaitState):
+    def get_seconds_to_wait(self) -> float | None:
+        if self.waits + 1 >= self.max_calls_total:
+            return None
+        self.waits += 1
+        return 0
 
 
 def retry_immediately(namespace: str | None = None) -> AbstractContextManager[None]:
@@ -18,4 +19,4 @@ def retry_immediately(namespace: str | None = None) -> AbstractContextManager[No
     `retry_async` decorators with the provided namespace. None means all decorators
     without a provided namespace will not wait.
     """
-    return replace_retry_state(WaitLessRetryState, namespace=namespace)
+    return replace_wait_state(WaitLessWaitState, namespace=namespace)

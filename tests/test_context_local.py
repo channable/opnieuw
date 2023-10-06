@@ -124,9 +124,9 @@ class TestAsyncContext(AsyncTestCase):
             finally:
                 await end_barrier.wait()
 
-    def test_async_retry_state_context(self) -> None:
+    def test_async_wait_state_context(self) -> None:
         """
-        Test that the retry state is only modified in the context of an asyncio.Task
+        Test that the wait state is only modified in the context of an asyncio.Task
         and not globally.
         """
 
@@ -149,9 +149,9 @@ class TestAsyncContext(AsyncTestCase):
 
         self._run_async(_test_inner())
 
-    def test_async_retry_state_context_nested(self) -> None:
+    def test_async_wait_state_context_nested(self) -> None:
         """
-        Test that the retry state is only modified in the context of an asyncio.Task
+        Test that the wait state is only modified in the context of an asyncio.Task
         and not globally. In this case the tasks are nested.
         """
 
@@ -165,7 +165,7 @@ class TestAsyncContext(AsyncTestCase):
                 start_barrier, end_barrier
             )
 
-            # Nested task should be able to override retry state
+            # Nested task should be able to override wait state
             # without leaking into parent, and vice versa
             assert self.counter.most_common() == [
                 ("nested_retry_immediately", 3),
@@ -187,7 +187,7 @@ class TestThreadedContext(unittest.TestCase):
         self.counter[counter_key] += 1
         raise TypeError
 
-    def test_threaded_retry_state_context(self) -> None:
+    def test_threaded_wait_state_context(self) -> None:
         def _retry_immediately_inner(
             start_barrier: threading.Barrier, end_barrier: threading.Barrier
         ) -> None:
@@ -239,7 +239,7 @@ class TestThreadedContext(unittest.TestCase):
         for t in threads:
             t.join()
 
-        # retry state should not leak between threads
+        # wait state should not leak between threads
         assert self.counter.most_common() == [
             ("retry_immediately", 3),
             ("no_retry", 1),
