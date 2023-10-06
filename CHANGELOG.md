@@ -11,6 +11,7 @@ Work in progress.
 - `DoCall`, `DoWait` and `RetryState` have been removed. They have been replaced by
   `BackoffCalculator`. This class exposes a method `get_backoff`. This method should return either
   a `float` representing the time to wait or `None` if there should be no more retries/waits.
+- Python 3.8+ is now required to run `opnieuw`.
 
 Release highlights:
 
@@ -20,6 +21,7 @@ Release highlights:
 - Add chaining of previously retried exceptions. `opnieuw` will now correctly set the
   `__cause__` attribute of any exception leaving the decorator with a chain of all the
   previously retried exceptions.
+- Python 3.8+ is now required to run `opnieuw`.
 
 
 2.0.0
