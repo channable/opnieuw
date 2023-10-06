@@ -218,11 +218,17 @@ def retry(
                 retry_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
             )
 
+            last_exception = None
             while True:
                 try:
                     return f(*args, **kwargs)
-                except retry_on_exceptions as e:
+                except Exception as e:
+                    if last_exception is not None:
+                        e.__cause__ = last_exception
+
                     last_exception = e
+                    if not isinstance(e, retry_on_exceptions):
+                        raise
 
                     sleep_seconds = backoff_calculator.get_backoff()
                     if sleep_seconds is None:
@@ -255,11 +261,17 @@ def retry_async(
                 retry_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
             )
 
+            last_exception = None
             while True:
                 try:
                     return await f(*args, **kwargs)
-                except retry_on_exceptions as e:
+                except Exception as e:
+                    if last_exception is not None:
+                        e.__cause__ = last_exception
+
                     last_exception = e
+                    if not isinstance(e, retry_on_exceptions):
+                        raise
 
                     sleep_seconds = backoff_calculator.get_backoff()
                     if sleep_seconds is None:
