@@ -12,7 +12,7 @@ from opnieuw.test_util import retry_immediately
 
 
 class TestBackoffCalculator(unittest.TestCase):
-    def test_never_stop(self) -> None:
+    def test_max_calls_is_zero(self) -> None:
         retry_state = BackoffCalculator(
             MonotonicClock(),
             max_calls_total=0,
