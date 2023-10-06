@@ -15,8 +15,8 @@ class TestBackoffCalculator(unittest.TestCase):
     def test_never_stop(self) -> None:
         retry_state = BackoffCalculator(
             MonotonicClock(),
-            max_backoffs_total=0,
-            backoff_window_after_first_call_in_seconds=3,
+            max_calls_total=0,
+            retry_window_after_first_call_in_seconds=3,
         )
 
         # This kind of BackoffCalculator should only return None

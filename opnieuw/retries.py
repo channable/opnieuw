@@ -78,17 +78,16 @@ class BackoffCalculator:
     def __init__(
         self,
         clock: Clock,
-        max_backoffs_total: int,
-        backoff_window_after_first_call_in_seconds: int,
+        max_calls_total: int,
+        retry_window_after_first_call_in_seconds: int,
     ) -> None:
         self.clock = clock
-        self.max_backoffs_total = max_backoffs_total
+        self.max_calls_total = max_calls_total
         self.deadline_second = (
-            self.clock.seconds_since_epoch()
-            + backoff_window_after_first_call_in_seconds
+            self.clock.seconds_since_epoch() + retry_window_after_first_call_in_seconds
         )
         self.base_in_seconds = calculate_exponential_multiplier(
-            max_backoffs_total, backoff_window_after_first_call_in_seconds
+            max_calls_total, retry_window_after_first_call_in_seconds
         )
         self.backoffs = 0
 
@@ -103,7 +102,7 @@ class BackoffCalculator:
         jittered_backoff = random.uniform(0.0, backoff_seconds)
 
         self.backoffs += 1
-        if self.backoffs >= self.max_backoffs_total:
+        if self.backoffs >= self.max_calls_total:
             logger.debug(f"Used up all {self.backoffs} retries.")
             return None
 
@@ -215,8 +214,8 @@ def retry(
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             backoff_calculator = _get_backoff_calculator_class(namespace)(
                 MonotonicClock(),
-                max_backoffs_total=max_calls_total,
-                backoff_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
+                max_calls_total=max_calls_total,
+                retry_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
             )
 
             while True:
@@ -252,8 +251,8 @@ def retry_async(
         async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             backoff_calculator = _get_backoff_calculator_class(namespace)(
                 MonotonicClock(),
-                max_backoffs_total=max_calls_total,
-                backoff_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
+                max_calls_total=max_calls_total,
+                retry_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
             )
 
             while True:

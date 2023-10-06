@@ -8,7 +8,7 @@ from .retries import BackoffCalculator, replace_backoff_calculator
 class WaitLessBackoff(BackoffCalculator):
     def get_backoff(self) -> float | None:
         self.backoffs += 1
-        if self.backoffs >= self.max_backoffs_total:
+        if self.backoffs >= self.max_calls_total:
             return None
         return 0
 
