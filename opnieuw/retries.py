@@ -96,16 +96,14 @@ class WaitState:
 
         None indicates that there should be no more waits.
         """
-        # The number of waits is always one less than the amount of calls since the first call
-        # isn't included.
-        if self.waits + 1 >= self.max_calls_total:
-            logger.debug(f"Used up all {self.max_calls_total} retries.")
-            return None
-
         wait_seconds = self.base_in_seconds * 2**self.waits
         jittered_wait = random.uniform(0.0, wait_seconds)
 
         self.waits += 1
+        if self.waits >= self.max_calls_total:
+            logger.debug(f"Used up all {self.max_calls_total} retries.")
+            return None
+
         if jittered_wait > self.deadline_second - self.clock.seconds_since_epoch():
             logger.debug("Next attempt would be after retry deadline, not retrying.")
             return None
