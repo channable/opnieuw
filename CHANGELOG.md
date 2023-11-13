@@ -4,7 +4,7 @@ Changelog
 3.0.0
 -----
 
-Work in progress.
+Released 2023-10-06.
 
 **Breaking changes**:
 
