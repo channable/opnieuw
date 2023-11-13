@@ -6,10 +6,11 @@
 import random
 import time
 import unittest
+import warnings
 from unittest import mock
 
 from opnieuw.clock import DummyClock, MonotonicClock
-from opnieuw.retries import BackoffCalculator, retry
+from opnieuw.retries import BackoffCalculator, retry, retry_async
 from opnieuw.test_util import retry_immediately
 
 
@@ -143,6 +144,33 @@ class TestExceptionChaining(unittest.TestCase):
                 self.assertIsInstance(e.__cause__, ValueError)
                 assert e.__cause__ is not None
                 self.assertIsInstance(e.__cause__.__cause__, TypeError)
+
+
+class TestWarningOnOneRetry(unittest.TestCase):
+    def test_raise_warning_for_retry_once(self) -> None:
+        """Test that a UserWarning is raised for non-sensical max_calls_total values."""
+
+        with warnings.catch_warnings(record=True) as w:
+
+            @retry(retry_on_exceptions=ValueError, max_calls_total=1)
+            def func() -> None:
+                ...
+
+            warnings.simplefilter("always")
+            assert len(w) == 1
+            assert issubclass(w[-1].category, UserWarning)
+            assert "max_calls_total" in str(w[-1].message)
+
+        with warnings.catch_warnings(record=True) as w:
+
+            @retry_async(retry_on_exceptions=ValueError, max_calls_total=1)
+            async def func() -> None:
+                ...
+
+            warnings.simplefilter("always")
+            assert len(w) == 1
+            assert issubclass(w[-1].category, UserWarning)
+            assert "max_calls_total" in str(w[-1].message)
 
 
 if __name__ == "__main__":

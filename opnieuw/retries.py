@@ -13,6 +13,7 @@ import logging
 import random
 import sys
 import time
+import warnings
 from collections import defaultdict
 from collections.abc import Callable, Coroutine, Iterator
 from contextlib import contextmanager
@@ -209,6 +210,16 @@ def retry(
         https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
     """
 
+    if max_calls_total < 2:
+        warnings.warn(
+            "`max_calls_total` should at least be 2 for `opnieuw` to retry. "
+            f"It is set to '{max_calls_total}'. If you want to retry without delay "
+            "consider using `opnieuw.test_util.retry_immediately`. If you do not "
+            "want any retries consider using `opnieuw.util.no_retries`",
+            UserWarning,
+            stacklevel=2,
+        )
+
     def decorator(f: Callable[P, R]) -> Callable[P, R]:
         @functools.wraps(f)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
@@ -249,6 +260,16 @@ def retry_async(
 ) -> Callable[
     [Callable[P, Coroutine[None, None, R]]], Callable[P, Coroutine[None, None, R]]
 ]:
+    if max_calls_total < 2:
+        warnings.warn(
+            "`max_calls_total` should at least be 2 for `opnieuw` to retry. "
+            f"It is set to '{max_calls_total}'. If you want to retry without delay "
+            "consider using `opnieuw.test_util.retry_immediately`. If you do not "
+            "want any retries consider using `opnieuw.util.no_retries`",
+            UserWarning,
+            stacklevel=2,
+        )
+
     def decorator(
         f: Callable[P, Coroutine[None, None, R]]
     ) -> Callable[P, Coroutine[None, None, R]]:

@@ -1,6 +1,15 @@
 Changelog
 =========
 
+3.1.0
+-----
+
+Work in progress.
+
+Release highlights:
+
+- A `UserWarning` will be raised whenever `max_calls_total` is lower than 2.
+
 3.0.0
 -----
 
