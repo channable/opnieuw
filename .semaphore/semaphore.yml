@@ -50,5 +50,5 @@ blocks:
             - "ssh-add ~/.ssh/id_ed25519"
 
             - "checkout"
-            - "python3.8 setup.py sdist bdist_wheel"
+            - "python setup.py sdist bdist_wheel"
             - "bash .semaphore/publish-or-perish.sh"
