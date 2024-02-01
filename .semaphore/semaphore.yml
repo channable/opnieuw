@@ -3,8 +3,8 @@ name: "Opnieuw"
 
 agent:
   machine:
-    type: "e1-standard-2"
-    os_image: "ubuntu1804"
+    type: "e2-standard-2"
+    os_image: "ubuntu2204"
 
 
 blocks:
@@ -16,8 +16,8 @@ blocks:
         - name: "Unit tests"
           commands:
             - "checkout"
-            - "python3.8 -m pip install ."
-            - "python3.8 -m unittest discover tests"
+            - "python -m pip install ."
+            - "python -m unittest discover tests"
 
   - name: "Build and ship"
 
