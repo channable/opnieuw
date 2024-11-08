@@ -125,6 +125,15 @@ class TestExceptionChaining(unittest.TestCase):
     @retry(
         retry_on_exceptions=(TypeError, ValueError),
         max_calls_total=3,
+        retry_window_after_first_call_in_seconds=3
+    )
+    def foo(self, ex: Exception = TypeError) -> None:
+        self.counter += 1
+        raise ex
+
+    @retry(
+        retry_on_exceptions=(TypeError, ValueError),
+        max_calls_total=3,
         retry_window_after_first_call_in_seconds=1,
     )
     def raise_depending_on_counter(self) -> None:
@@ -144,6 +153,17 @@ class TestExceptionChaining(unittest.TestCase):
                 self.assertIsInstance(e.__cause__, ValueError)
                 assert e.__cause__ is not None
                 self.assertIsInstance(e.__cause__.__cause__, TypeError)
+
+    def test_raise_multiple_exceptions(self) -> None:
+        try:
+            self.foo(IndexError)
+        except Exception as e:
+            self.assertTrue(self.counter < 3 and isinstance(e, IndexError))
+
+        try:
+            self.foo(ValueError)
+        except Exception as e:
+            self.assertTrue(self.counter > 3 and isinstance(e, ValueError))
 
 
 class TestWarningOnOneRetry(unittest.TestCase):
