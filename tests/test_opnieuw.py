@@ -179,12 +179,15 @@ class TestExceptionChaining(unittest.TestCase):
         try:
             self.foo(IndexError)
         except Exception as e:
-            self.assertTrue(self.counter < 3 and isinstance(e, IndexError))
+            self.assertLess(self.counter, 3)
+            self.assertTrue(isinstance(e, IndexError))
 
         try:
+            self.counter = 0
             self.foo(ValueError)
         except Exception as e:
-            self.assertTrue(self.counter >= 3 and isinstance(e, ValueError))
+            self.assertGreaterEqual(self.counter, 3)
+            self.assertTrue(isinstance(e, ValueError))
 
 
 class TestWarningOnOneRetry(unittest.TestCase):

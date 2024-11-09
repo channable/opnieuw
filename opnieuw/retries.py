@@ -16,7 +16,7 @@ import time
 import warnings
 from collections import defaultdict
 from collections.abc import Callable, Coroutine, Iterator
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from contextvars import ContextVar
 from typing import TypeVar
 
@@ -237,21 +237,18 @@ def retry(
                     if last_exception is not None:
                         e.__cause__ = last_exception
 
-                    if (type(retry_on_exceptions) == 'function' and not retry_on_exceptions(e)):
-                        raise
-
                     params = (
                         retry_on_exceptions if type(retry_on_exceptions) == tuple else
                         (retry_on_exceptions,)
                     )
-                    cbs = [param(e) for param in params if type(param) == 'function']
+                    cbs = [param(e) for param in params if type(param).__name__ == 'function']
                     if cbs and not any(cbs):
                         raise
 
-                    last_exception = e
-                    if not isinstance(e, retry_on_exceptions if not callable(retry_on_exceptions)
-                                                             else type(retry_on_exceptions)):
-                        raise
+                    with suppress(TypeError): # raised when params is a function
+                        last_exception = e
+                        if not isinstance(e, params):
+                            raise
 
                     if (sleep_seconds := backoff_calculator.get_backoff()) is None:
                         raise
