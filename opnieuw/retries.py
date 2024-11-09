@@ -237,8 +237,20 @@ def retry(
                     if last_exception is not None:
                         e.__cause__ = last_exception
 
+                    if (type(retry_on_exceptions) == 'function' and not retry_on_exceptions(e)):
+                        raise
+
+                    params = (
+                        retry_on_exceptions if type(retry_on_exceptions) == tuple else
+                        (retry_on_exceptions,)
+                    )
+                    cbs = [param(e) for param in params if type(param) == 'function']
+                    if cbs and not any(cbs):
+                        raise
+
                     last_exception = e
-                    if not isinstance(e, retry_on_exceptions):
+                    if not isinstance(e, retry_on_exceptions if not callable(retry_on_exceptions)
+                                                             else type(retry_on_exceptions)):
                         raise
 
                     if (sleep_seconds := backoff_calculator.get_backoff()) is None:

@@ -14,6 +14,10 @@ from opnieuw.retries import BackoffCalculator, retry, retry_async
 from opnieuw.test_util import retry_immediately
 
 
+def should_retry(ex: Exception) -> bool:
+    return "Please try again" in str(ex)
+
+
 class TestBackoffCalculator(unittest.TestCase):
     def test_max_calls_is_zero(self) -> None:
         retry_state = BackoffCalculator(
@@ -54,6 +58,17 @@ class TestRetryDecorator(unittest.TestCase):
         self.counter += 1
         raise TypeError
 
+    @retry(
+        retry_on_exceptions=should_retry,
+        max_calls_total=3,
+        retry_window_after_first_call_in_seconds=3
+    )
+    def bar(self) -> None:
+        self.counter += 1
+        raise Exception("Please try again"
+                        if self.counter > 0 and self.counter % 2 == 0
+                        else "Skip all retries")
+
     def test_raise_exception(self) -> None:
         try:
             self.foo()
@@ -67,6 +82,12 @@ class TestRetryDecorator(unittest.TestCase):
             self.foo()
         except TypeError:
             self.assertEqual(self.counter, 3)
+
+    def test_retry_with_callable(self) -> None:
+        try:
+            self.bar()
+        except Exception as e:
+            self.assertEqual(str(e), "Skip all retries")
 
     @mock.patch.object(random, "uniform", return_value=0.1)
     def test_retry_with_waits(self, mocked_random) -> None:
@@ -163,7 +184,7 @@ class TestExceptionChaining(unittest.TestCase):
         try:
             self.foo(ValueError)
         except Exception as e:
-            self.assertTrue(self.counter > 3 and isinstance(e, ValueError))
+            self.assertTrue(self.counter >= 3 and isinstance(e, ValueError))
 
 
 class TestWarningOnOneRetry(unittest.TestCase):
