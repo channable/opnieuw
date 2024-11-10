@@ -300,8 +300,18 @@ def retry_async(
                         e.__cause__ = last_exception
 
                     last_exception = e
-                    if not isinstance(e, retry_on_exceptions):
-                        raise
+                    params = (
+                        retry_on_exceptions if type(retry_on_exceptions) == tuple else
+                        (retry_on_exceptions,)
+                    )
+                    errs = tuple([param for param in params if type(param).__name__ == 'type'])
+                    if not isinstance(e, errs):
+                        callbacks = [param(e) for param in params if type(param).__name__ == 'function']
+                        if not callbacks:
+                            raise
+
+                        if not any(callbacks):
+                            raise
 
                     if (sleep_seconds := backoff_calculator.get_backoff()) is None:
                         raise
