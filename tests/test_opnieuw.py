@@ -49,6 +49,12 @@ class TestRetryClock(unittest.TestCase):
 class TestRetryDecorator(unittest.TestCase):
     counter = 0
 
+    def error(self, kind=None) -> None:
+        self.counter += 1
+        raise kind if kind else Exception("Please try again"
+                                          if self.counter > 0 and self.counter % 2 == 0
+                                          else "Skip all retries")
+
     @retry(
         retry_on_exceptions=TypeError,
         max_calls_total=3,
@@ -64,10 +70,15 @@ class TestRetryDecorator(unittest.TestCase):
         retry_window_after_first_call_in_seconds=3
     )
     def bar(self) -> None:
-        self.counter += 1
-        raise Exception("Please try again"
-                        if self.counter > 0 and self.counter % 2 == 0
-                        else "Skip all retries")
+        return self.error()
+
+    @retry(
+        retry_on_exceptions=(TypeError, ValueError, should_retry),
+        max_calls_total=3,
+        retry_window_after_first_call_in_seconds=3
+    )
+    def baz(self, kind=None) -> None:
+        return self.error(kind)
 
     def test_raise_exception(self) -> None:
         try:
@@ -88,6 +99,26 @@ class TestRetryDecorator(unittest.TestCase):
             self.bar()
         except Exception as e:
             self.assertEqual(str(e), "Skip all retries")
+
+    def test_retry_with_mixed_callable(self) -> None:
+        try:
+            self.baz()
+        except Exception as e:
+            self.assertLessEqual(self.counter, 3)
+            self.assertTrue(isinstance(e, Exception))
+
+        try:
+            self.counter = 0
+            self.baz(ValueError)
+        except Exception as e:
+            self.assertGreaterEqual(self.counter, 3)
+            self.assertTrue(isinstance(e, ValueError))
+
+        try:
+            self.counter = 0
+            self.baz(TypeError)
+        except Exception as e:
+            self.assertGreaterEqual(self.counter, 3)
 
     @mock.patch.object(random, "uniform", return_value=0.1)
     def test_retry_with_waits(self, mocked_random) -> None:
