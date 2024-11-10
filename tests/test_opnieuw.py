@@ -61,8 +61,7 @@ class TestRetryDecorator(unittest.TestCase):
         retry_window_after_first_call_in_seconds=3,
     )
     def foo(self) -> None:
-        self.counter += 1
-        raise TypeError
+        return self.error(TypeError)
 
     @retry(
         retry_on_exceptions=should_retry,
@@ -73,11 +72,19 @@ class TestRetryDecorator(unittest.TestCase):
         return self.error()
 
     @retry(
+        retry_on_exceptions=(TypeError, ValueError),
+        max_calls_total=3,
+        retry_window_after_first_call_in_seconds=3
+    )
+    def foobar(self, ex: Exception = TypeError) -> None:
+        return self.error(ex)
+
+    @retry(
         retry_on_exceptions=(TypeError, ValueError, should_retry),
         max_calls_total=3,
         retry_window_after_first_call_in_seconds=3
     )
-    def baz(self, kind=None) -> None:
+    def barfoo(self, kind=None) -> None:
         return self.error(kind)
 
     def test_raise_exception(self) -> None:
@@ -85,6 +92,21 @@ class TestRetryDecorator(unittest.TestCase):
             self.foo()
         except Exception as e:
             self.assertTrue(isinstance(e, TypeError))
+
+    def test_raise_multiple_exceptions(self) -> None:
+        with retry_immediately():
+            try:
+                self.foobar(IndexError)
+            except Exception as e:
+                self.assertLess(self.counter, 3)
+                self.assertTrue(isinstance(e, IndexError))
+
+            try:
+                self.counter = 0
+                self.foobar(ValueError)
+            except Exception as e:
+                self.assertGreaterEqual(self.counter, 3)
+                self.assertTrue(isinstance(e, ValueError))
 
     def _retry_with_waits(self) -> None:
         self.counter = 0
@@ -101,24 +123,25 @@ class TestRetryDecorator(unittest.TestCase):
             self.assertEqual(str(e), "Skip all retries")
 
     def test_retry_with_mixed_callable(self) -> None:
-        try:
-            self.baz()
-        except Exception as e:
-            self.assertLessEqual(self.counter, 3)
-            self.assertTrue(isinstance(e, Exception))
+        with retry_immediately():
+            try:
+                self.barfoo()
+            except Exception as e:
+                self.assertLessEqual(self.counter, 3)
+                self.assertTrue(isinstance(e, Exception))
 
-        try:
-            self.counter = 0
-            self.baz(ValueError)
-        except Exception as e:
-            self.assertGreaterEqual(self.counter, 3)
-            self.assertTrue(isinstance(e, ValueError))
+            try:
+                self.counter = 0
+                self.barfoo(ValueError)
+            except Exception as e:
+                self.assertGreaterEqual(self.counter, 3)
+                self.assertTrue(isinstance(e, ValueError))
 
-        try:
-            self.counter = 0
-            self.baz(TypeError)
-        except Exception as e:
-            self.assertGreaterEqual(self.counter, 3)
+            try:
+                self.counter = 0
+                self.barfoo(TypeError)
+            except Exception as e:
+                self.assertGreaterEqual(self.counter, 3)
 
     @mock.patch.object(random, "uniform", return_value=0.1)
     def test_retry_with_waits(self, mocked_random) -> None:
@@ -177,15 +200,6 @@ class TestExceptionChaining(unittest.TestCase):
     @retry(
         retry_on_exceptions=(TypeError, ValueError),
         max_calls_total=3,
-        retry_window_after_first_call_in_seconds=3
-    )
-    def foo(self, ex: Exception = TypeError) -> None:
-        self.counter += 1
-        raise ex
-
-    @retry(
-        retry_on_exceptions=(TypeError, ValueError),
-        max_calls_total=3,
         retry_window_after_first_call_in_seconds=1,
     )
     def raise_depending_on_counter(self) -> None:
@@ -205,20 +219,6 @@ class TestExceptionChaining(unittest.TestCase):
                 self.assertIsInstance(e.__cause__, ValueError)
                 assert e.__cause__ is not None
                 self.assertIsInstance(e.__cause__.__cause__, TypeError)
-
-    def test_raise_multiple_exceptions(self) -> None:
-        try:
-            self.foo(IndexError)
-        except Exception as e:
-            self.assertLess(self.counter, 3)
-            self.assertTrue(isinstance(e, IndexError))
-
-        try:
-            self.counter = 0
-            self.foo(ValueError)
-        except Exception as e:
-            self.assertGreaterEqual(self.counter, 3)
-            self.assertTrue(isinstance(e, ValueError))
 
 
 class TestWarningOnOneRetry(unittest.TestCase):
