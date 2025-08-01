@@ -8,7 +8,7 @@ import setuptools  # type: ignore
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
-__version__ = "3.0.0"
+__version__ = "3.1.0"
 
 setuptools.setup(
     name="opnieuw",
