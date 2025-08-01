@@ -1,0 +1,42 @@
+[build-system]
+requires = ['setuptools', 'setuptools-scm']
+build-backend = 'setuptools.build_meta'
+
+[project]
+name = 'opnieuw'
+description = 'Retries for humans'
+readme = 'README.md'
+requires-python = '>=3.8'
+keywords = []
+license = {file = 'LICENSE'}
+classifiers = [
+    'Development Status :: 5 - Production/Stable',
+    'Intended Audience :: Developers',
+    'Natural Language :: English',
+    'Operating System :: Unix',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
+    'Programming Language :: Python :: 3.12',
+    'Programming Language :: Python :: 3.13',
+    'Programming Language :: Python :: 3.14',
+    "Programming Language :: Python :: Implementation :: CPython",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Development Status :: 6 - Mature",
+    'Typing :: Typed'
+]
+dependencies = ["typing-extensions>=3.10.0;python_version<'3.10'"]
+authors = [{'email' = 'ruud@channable.com'}]
+dynamic = ['version']
+
+[project.urls]
+Homepage = 'https://github.com/channable/opnieuw'
+
+[tool.setuptools.dynamic]
+version = {attr = 'opnieuw.__version__'}
+
+[tool.setuptools.package-data]
+opnieuw = ['py.typed']

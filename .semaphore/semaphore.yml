@@ -3,7 +3,7 @@ name: "Opnieuw"
 
 agent:
   machine:
-    type: "e2-standard-2"
+    type: "f1-standard-2"
     os_image: "ubuntu2204"
 
 
@@ -22,7 +22,7 @@ blocks:
   - name: "Build and ship"
 
     # Any time new commits are added to master branch we will try to publish to Pypi.
-    # The version of the package will be taken from `setup.py`. If there is a package
+    # The version of the package will be taken from `opnieuw/__init__.py`. If there is a package
     # with that version known to Pypi already, nothing will happen.
     skip:
       when: "branch != 'master'"
@@ -50,5 +50,5 @@ blocks:
             - "ssh-add ~/.ssh/id_ed25519"
 
             - "checkout"
-            - "python setup.py sdist bdist_wheel"
+            - "python3.12 -m pip install -e ."
             - "bash .semaphore/publish-or-perish.sh"
