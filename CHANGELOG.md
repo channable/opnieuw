@@ -9,7 +9,7 @@ Work in progress.
 Release highlights:
 
 - A `UserWarning` will be raised whenever `max_calls_total` is lower than 2.
-- Replace setup.py by pyproject.toml and add Python 3.13 support
+- Replace setup.py by pyproject.toml and add Python 3.13 + 3.14 support
 
 3.0.0
 -----
