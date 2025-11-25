@@ -9,16 +9,18 @@ from __future__ import annotations
 
 import asyncio
 import functools
+import inspect
 import logging
 import random
 import sys
 import time
+from types import CoroutineType
 import warnings
 from collections import defaultdict
-from collections.abc import Callable, Coroutine, Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import TypeVar
+from typing import TypeVar, Awaitable, Any, Coroutine, cast, overload
 
 if sys.version_info < (3, 10):
     from typing_extensions import ParamSpec
@@ -206,6 +208,8 @@ def retry(
     seconds have elapsed after the first retry, the second retry is not
     scheduled.
 
+    This decorator can wrap both sync and async Python functions.
+
     Opnieuw is based on a retry algorithm off of:
         https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
     """
@@ -220,87 +224,77 @@ def retry(
             stacklevel=2,
         )
 
-    def decorator(f: Callable[P, R]) -> Callable[P, R]:
-        @functools.wraps(f)
-        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-            backoff_calculator = _get_backoff_calculator_class(namespace)(
-                MonotonicClock(),
-                max_calls_total=max_calls_total,
-                retry_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
-            )
+    
+    @overload
+    def decorator(f: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]: ...
 
-            last_exception = None
-            while True:
-                try:
-                    return f(*args, **kwargs)
-                except Exception as e:
-                    if last_exception is not None:
-                        e.__cause__ = last_exception
 
-                    last_exception = e
-                    if not isinstance(e, retry_on_exceptions):
-                        raise
+    @overload
+    def decorator(f: Callable[P, R]) -> Callable[P, R]: ...
 
-                    if (sleep_seconds := backoff_calculator.get_backoff()) is None:
-                        raise
 
-                    time.sleep(sleep_seconds)
+    def decorator(f: Callable[P, R]) -> Callable[P, R] | Callable[P, Awaitable[R]]:
+        if inspect.iscoroutinefunction(f):
+            async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+                backoff_calculator = _get_backoff_calculator_class(namespace)(
+                    MonotonicClock(),
+                    max_calls_total=max_calls_total,
+                    retry_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
+                )
 
-        return wrapper
+                last_exception = None
+                while True:
+                    try:
+                        # Mypy currently does not propagate type-narrowing info from outside this asyc def
+                        # to its body.
+                        # Therefore, the following cast is necessary.
+                        # You can find a longer writeup on StackOverflow: https://stackoverflow.com/a/75439065/1067339
+                        # The linked-to issue (https://github.com/python/mypy/issues/2608) is nowadays closed;
+                        # MyPy accepts the following in non-strict mode but the cast is still necessary in strict mode.
+                        #
+                        # This cast is sound because of the `inspect.iscoroutinefunction(f)` above.
+                        return await cast(Awaitable[R], f(*args, **kwargs))
+                    except Exception as e:
+                        if last_exception is not None:
+                            e.__cause__ = last_exception
 
+                        last_exception = e
+                        if not isinstance(e, retry_on_exceptions):
+                            raise
+
+                        if (sleep_seconds := backoff_calculator.get_backoff()) is None:
+                            raise
+
+                        await asyncio.sleep(sleep_seconds)
+            return functools.wraps(f)(async_wrapper)
+        else:
+            def sync_wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+                backoff_calculator = _get_backoff_calculator_class(namespace)(
+                    MonotonicClock(),
+                    max_calls_total=max_calls_total,
+                    retry_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
+                )
+
+                last_exception = None
+                while True:
+                    try:
+                        return f(*args, **kwargs)
+                    except Exception as e:
+                        if last_exception is not None:
+                            e.__cause__ = last_exception
+
+                        last_exception = e
+                        if not isinstance(e, retry_on_exceptions):
+                            raise
+
+                        if (sleep_seconds := backoff_calculator.get_backoff()) is None:
+                            raise
+
+                        time.sleep(sleep_seconds)
+            return functools.wraps(f)(sync_wrapper)
     return decorator
 
-
-def retry_async(
-    *,
-    retry_on_exceptions: type[Exception] | tuple[type[Exception], ...],
-    max_calls_total: int = 3,
-    retry_window_after_first_call_in_seconds: int = 60,
-    namespace: str | None = None,
-) -> Callable[
-    [Callable[P, Coroutine[None, None, R]]], Callable[P, Coroutine[None, None, R]]
-]:
-    if max_calls_total < 2:
-        warnings.warn(
-            "`max_calls_total` should at least be 2 for `opnieuw` to retry. "
-            f"It is set to '{max_calls_total}'. If you want to retry without delay "
-            "consider using `opnieuw.test_util.retry_immediately`. If you do not "
-            "want any retries consider using `opnieuw.util.no_retries`",
-            UserWarning,
-            stacklevel=2,
-        )
-
-    def decorator(
-        f: Callable[P, Coroutine[None, None, R]]
-    ) -> Callable[P, Coroutine[None, None, R]]:
-        @functools.wraps(f)
-        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-            backoff_calculator = _get_backoff_calculator_class(namespace)(
-                MonotonicClock(),
-                max_calls_total=max_calls_total,
-                retry_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
-            )
-
-            last_exception = None
-            while True:
-                try:
-                    return await f(*args, **kwargs)
-                except Exception as e:
-                    if last_exception is not None:
-                        e.__cause__ = last_exception
-
-                    last_exception = e
-                    if not isinstance(e, retry_on_exceptions):
-                        raise
-
-                    if (sleep_seconds := backoff_calculator.get_backoff()) is None:
-                        raise
-
-                    await asyncio.sleep(sleep_seconds)
-
-        return wrapper
-
-    return decorator
-
-
-retry_async.__doc__ = retry.__doc__
+# We expose `retry_async` for backwards-compatibility.
+# However, nowadays the main `retry` decorator is able
+# to accept both sync and async functions directly.
+retry_async = retry
