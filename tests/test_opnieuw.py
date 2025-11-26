@@ -163,7 +163,7 @@ class TestWarningOnOneRetry(unittest.TestCase):
 
         with warnings.catch_warnings(record=True) as w:
 
-            @retry_async(retry_on_exceptions=ValueError, max_calls_total=1)
+            @retry(retry_on_exceptions=ValueError, max_calls_total=1)
             async def some_async_func() -> None:
                 ...
 
