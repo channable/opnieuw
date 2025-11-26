@@ -8,4 +8,4 @@ from .retries import retry, retry_async
 
 __all__ = ["retry_async", "retry", "RetryException"]
 
-__version__ = "3.1.0"
+__version__ = "3.2.0"
