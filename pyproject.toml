@@ -28,7 +28,7 @@ classifiers = [
     "Development Status :: 6 - Mature",
     'Typing :: Typed'
 ]
-dependencies = ["typing-extensions>=3.10.0;python_version<'3.10'"]
+dependencies = ["typing-extensions>=4.5.0;python_version<'3.10'"]
 authors = [{'email' = 'ruud@channable.com'}]
 dynamic = ['version']
 
