@@ -172,11 +172,12 @@ def retry(
     max_calls_total: int = 3,
     retry_window_after_first_call_in_seconds: int = 60,
     namespace: str | None = None,
+    on_retry: Callable[[int, Exception, float], None] | None = None,
 ) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """
     Retry a function using a Full Jitter exponential backoff.
 
-    This function exposes four settings:
+    This function exposes five settings:
 
      - `retry_on_exceptions` - A tuple of exception types to retry on.
      - `max_calls_total` - The maximum number of calls of the decorated
@@ -185,6 +186,9 @@ def retry(
        spread out the retries over after the first call.
      - `namespace` - A name with which the wait behavior can be controlled
        using the `opnieuw.test_util.retry_immediately` contextmanager.
+     - `on_retry` - An optional callback that is called before each retry.
+       It is called with the attempt number (starting at 1), the exception
+       that triggered the retry, and the backoff in seconds.
 
     This function will:
 
@@ -284,6 +288,12 @@ def retry(
                         if (sleep_seconds := backoff_calculator.get_backoff()) is None:
                             raise
 
+                        if on_retry:
+                            try:
+                                on_retry(backoff_calculator.backoffs, e, sleep_seconds)
+                            except Exception:
+                                logger.exception("on_retry callback failed")
+
                         await asyncio.sleep(sleep_seconds)
             return functools.wraps(f)(async_wrapper)
         else:
@@ -297,7 +307,7 @@ def retry(
                 last_exception = None
                 while True:
                     try:
-                        return f(*args, **kwargs)
+                        return cast(R, f(*args, **kwargs))
                     except Exception as e:
                         if last_exception is not None:
                             e.__cause__ = last_exception
@@ -308,6 +318,12 @@ def retry(
 
                         if (sleep_seconds := backoff_calculator.get_backoff()) is None:
                             raise
+
+                        if on_retry:
+                            try:
+                                on_retry(backoff_calculator.backoffs, e, sleep_seconds)
+                            except Exception:
+                                logger.exception("on_retry callback failed")
 
                         time.sleep(sleep_seconds)
             return functools.wraps(f)(sync_wrapper)
