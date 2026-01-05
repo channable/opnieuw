@@ -1,14 +1,21 @@
 Changelog
 =========
 
+(unreleased)
+-----
+**Release highlights:**
+
 3.2.0
+-----
+
+Released 2025-11-26.
 
 - `@retry` now supports wrapping both sync and async functions, making `@retry_async` obsolete. It's still there for backwards compatibility, but marked as deprecated. In the past, you had to wrap async functions with `@retry_async`, because otherwise you'd get surprising runtime behaviour. Now, it's no longer possible to accidentally use the wrong variant.
 
 3.1.0
 -----
 
-Work in progress.
+Released 2025-08-01.
 
 Release highlights:
 
