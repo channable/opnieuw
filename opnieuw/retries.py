@@ -71,6 +71,17 @@ def calculate_exponential_multiplier(
     return multiplier
 
 
+def _validate_retry_parameters(
+    max_calls_total: int, retry_window_after_first_call_in_seconds: int
+) -> None:
+    if max_calls_total < 1:
+        raise ValueError(f"`max_calls_total` must be at least 1, got {max_calls_total}")
+    if retry_window_after_first_call_in_seconds < 0:
+        raise ValueError(
+            f"`retry_window_after_first_call_in_seconds` must be non-negative, got {retry_window_after_first_call_in_seconds}"
+        )
+
+
 class BackoffCalculator:
     """
     Class responsible for calculating backoff periods.
@@ -217,6 +228,10 @@ def retry(
     Opnieuw is based on a retry algorithm off of:
         https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
     """
+
+    _validate_retry_parameters(
+        max_calls_total, retry_window_after_first_call_in_seconds
+    )
 
     if max_calls_total < 2:
         warnings.warn(

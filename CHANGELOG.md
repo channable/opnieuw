@@ -5,6 +5,7 @@ Changelog
 -----
 **Release highlights:**
 
+- Enhance debug logging with detailed retry progress information, including current attempt number, total attempts, and remaining retry window duration.
 
 3.2.0
 -----
