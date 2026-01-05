@@ -109,12 +109,16 @@ class BackoffCalculator:
             logger.debug(f"Used up all {self.backoffs} retries.")
             return None
 
-        if jittered_backoff > self.deadline_second - self.clock.seconds_since_epoch():
-            logger.debug("Next attempt would be after retry deadline, not retrying.")
+        remaining_window = self.deadline_second - self.clock.seconds_since_epoch()
+        if jittered_backoff > remaining_window:
+            logger.debug(
+                f"Next attempt would be after retry deadline (remaining window: {remaining_window:.3f}s), not retrying."
+            )
             return None
 
         logger.debug(
-            f"Backoff for {jittered_backoff:.3f} seconds after attempt {self.backoffs}"
+            f"Backoff for {jittered_backoff:.3f} seconds after attempt {self.backoffs}/{self.max_calls_total} "
+            f"(remaining window: {remaining_window:.3f}s)"
         )
         return jittered_backoff
 
