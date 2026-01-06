@@ -71,17 +71,6 @@ def calculate_exponential_multiplier(
     return multiplier
 
 
-def _validate_retry_parameters(
-    max_calls_total: int, retry_window_after_first_call_in_seconds: int
-) -> None:
-    if max_calls_total < 1:
-        raise ValueError(f"`max_calls_total` must be at least 1, got {max_calls_total}")
-    if retry_window_after_first_call_in_seconds < 0:
-        raise ValueError(
-            f"`retry_window_after_first_call_in_seconds` must be non-negative, got {retry_window_after_first_call_in_seconds}"
-        )
-
-
 class BackoffCalculator:
     """
     Class responsible for calculating backoff periods.
@@ -233,16 +222,19 @@ def retry(
         https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
     """
 
-    _validate_retry_parameters(
-        max_calls_total, retry_window_after_first_call_in_seconds
-    )
+    if retry_window_after_first_call_in_seconds < 0:
+        warnings.warn(
+            f"`retry_window_after_first_call_in_seconds` must be non-negative, got {retry_window_after_first_call_in_seconds}",
+            UserWarning,
+            stacklevel=2,
+        )
 
     if max_calls_total < 2:
         warnings.warn(
             "`max_calls_total` should at least be 2 for `opnieuw` to retry. "
             f"It is set to '{max_calls_total}'. If you want to retry without delay "
             "consider using `opnieuw.test_util.retry_immediately`. If you do not "
-            "want any retries consider using `opnieuw.util.no_retries`",
+            "want any retries consider using `opnieuw.util.no_retries`.",
             UserWarning,
             stacklevel=2,
         )
