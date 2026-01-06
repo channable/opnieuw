@@ -1,12 +1,14 @@
 Changelog
 =========
 
-(unreleased)
+3.3.0
 -----
-**Release highlights:**
 
-- Add `on_retry` callback parameter to `@retry` decorator, enabling custom hooks for monitoring, logging, and observability integrations. The callback receives the attempt number, exception, and backoff duration.
-- Add parameter validation to `@retry` decorator that raises `ValueError` for invalid configurations (`max_calls_total < 1` or negative retry windows), providing clearer error messages at decoration time rather than runtime.
+Released 2026-01-x.
+
+Release highlights:
+
+- Add parameter validation to `@retry` decorator that issues a `UserWarning` for invalid configurations (negative retry windows), providing clearer error messages at decoration time rather than runtime.
 - Enhance debug logging with detailed retry progress information, including current attempt number, total attempts, and remaining retry window duration.
 
 3.2.0
