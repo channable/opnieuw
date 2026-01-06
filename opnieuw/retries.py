@@ -319,11 +319,6 @@ def retry(
                         if (sleep_seconds := backoff_calculator.get_backoff()) is None:
                             raise
 
-                        if on_retry:
-                            try:
-                                on_retry(backoff_calculator.backoffs, e, sleep_seconds)
-                            except Exception:
-                                logger.exception("on_retry callback failed")
 
                         time.sleep(sleep_seconds)
             return functools.wraps(f)(sync_wrapper)
