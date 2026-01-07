@@ -4,11 +4,11 @@ Changelog
 3.3.0
 -----
 
-Released 2026-01-x.
+Released 2026-01-07.
 
 Release highlights:
 
-- Add parameter validation to `@retry` decorator that issues a `UserWarning` for invalid configurations (negative retry windows), providing clearer error messages at decoration time rather than runtime.
+- Add parameter validation to `@retry` and `@retry_async` decorators that issues a `UserWarning` for invalid configurations (negative retry windows or `max_calls_total < 2`), providing clearer error messages at decoration time rather than runtime.
 - Enhance debug logging with detailed retry progress information, including current attempt number, total attempts, and remaining retry window duration.
 
 3.2.0
