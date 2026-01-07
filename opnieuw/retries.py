@@ -165,7 +165,7 @@ def retry(
     """
     Retry a function using a Full Jitter exponential backoff.
 
-    This function exposes settings:
+    This function exposes four settings:
 
      - `retry_on_exceptions` - A tuple of exception types to retry on.
      - `max_calls_total` - The maximum number of calls of the decorated
