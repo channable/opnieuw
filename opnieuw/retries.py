@@ -334,8 +334,25 @@ def retry_async(
     but nowadays the main `retry` decorator can be used
     for both sync and async functions.
     """
+    if retry_window_after_first_call_in_seconds < 0:
+        warnings.warn(
+            f"`retry_window_after_first_call_in_seconds` must be non-negative, got {retry_window_after_first_call_in_seconds}",
+            UserWarning,
+            stacklevel=2,
+        )
+
+    if max_calls_total < 2:
+        warnings.warn(
+            "`max_calls_total` should at least be 2 for `opnieuw` to retry. "
+            f"It is set to '{max_calls_total}'. If you want to retry without delay "
+            "consider using `opnieuw.test_util.retry_immediately`. If you do not "
+            "want any retries consider using `opnieuw.util.no_retries`.",
+            UserWarning,
+            stacklevel=2,
+        )
+
     return retry(
-        retry_on_exceptions=retry_on_exceptions, 
+        retry_on_exceptions=retry_on_exceptions,
         max_calls_total=max_calls_total,
         retry_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
         namespace=namespace

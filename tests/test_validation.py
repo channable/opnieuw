@@ -4,7 +4,7 @@
 # Licensed under the 3-clause BSD license, see the LICENSE file in the repository root.
 
 import unittest
-from opnieuw import retry
+from opnieuw import retry, retry_async
 
 
 class TestParameterValidation(unittest.TestCase):
@@ -12,9 +12,15 @@ class TestParameterValidation(unittest.TestCase):
         with self.assertWarnsRegex(UserWarning, "`max_calls_total` should at least be 2"):
             retry(retry_on_exceptions=(ValueError,), max_calls_total=1)
 
+        with self.assertWarnsRegex(UserWarning, "`max_calls_total` should at least be 2"):
+            retry_async(retry_on_exceptions=(ValueError,), max_calls_total=1)
+
     def test_invalid_max_calls_total_0(self) -> None:
         with self.assertWarnsRegex(UserWarning, "`max_calls_total` should at least be 2"):
             retry(retry_on_exceptions=(ValueError,), max_calls_total=0)
+
+        with self.assertWarnsRegex(UserWarning, "`max_calls_total` should at least be 2"):
+            retry_async(retry_on_exceptions=(ValueError,), max_calls_total=0)
 
     def test_negative_retry_window(self) -> None:
         with self.assertWarnsRegex(
@@ -22,6 +28,16 @@ class TestParameterValidation(unittest.TestCase):
             "`retry_window_after_first_call_in_seconds` must be non-negative",
         ):
             retry(
+                retry_on_exceptions=(ValueError,),
+                max_calls_total=3,
+                retry_window_after_first_call_in_seconds=-1,
+            )
+
+        with self.assertWarnsRegex(
+            UserWarning,
+            "`retry_window_after_first_call_in_seconds` must be non-negative",
+        ):
+            retry_async(
                 retry_on_exceptions=(ValueError,),
                 max_calls_total=3,
                 retry_window_after_first_call_in_seconds=-1,
