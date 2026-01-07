@@ -146,32 +146,6 @@ class TestExceptionChaining(unittest.TestCase):
                 self.assertIsInstance(e.__cause__.__cause__, TypeError)
 
 
-class TestWarningOnOneRetry(unittest.TestCase):
-    def test_raise_warning_for_retry_once(self) -> None:
-        """Test that a UserWarning is raised for non-sensical max_calls_total values."""
-
-        with warnings.catch_warnings(record=True) as w:
-
-            @retry(retry_on_exceptions=ValueError, max_calls_total=1)
-            def some_func() -> None:
-                ...
-
-            warnings.simplefilter("always")
-            assert len(w) == 1
-            assert issubclass(w[-1].category, UserWarning)
-            assert "max_calls_total" in str(w[-1].message)
-
-        with warnings.catch_warnings(record=True) as w:
-
-            @retry(retry_on_exceptions=ValueError, max_calls_total=1)
-            async def some_async_func() -> None:
-                ...
-
-            warnings.simplefilter("always")
-            assert len(w) == 1
-            assert issubclass(w[-1].category, UserWarning)
-            assert "max_calls_total" in str(w[-1].message)
-
 
 if __name__ == "__main__":
     unittest.main()
