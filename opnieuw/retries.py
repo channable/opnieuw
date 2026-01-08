@@ -109,12 +109,16 @@ class BackoffCalculator:
             logger.debug(f"Used up all {self.backoffs} retries.")
             return None
 
-        if jittered_backoff > self.deadline_second - self.clock.seconds_since_epoch():
-            logger.debug("Next attempt would be after retry deadline, not retrying.")
+        remaining_window = self.deadline_second - self.clock.seconds_since_epoch()
+        if jittered_backoff > remaining_window:
+            logger.debug(
+                f"Next attempt would be after retry deadline (remaining window: {remaining_window:.3f}s), not retrying."
+            )
             return None
 
         logger.debug(
-            f"Backoff for {jittered_backoff:.3f} seconds after attempt {self.backoffs}"
+            f"Backoff for {jittered_backoff:.3f} seconds after attempt {self.backoffs}/{self.max_calls_total} "
+            f"(remaining window: {remaining_window:.3f}s)"
         )
         return jittered_backoff
 
@@ -214,17 +218,23 @@ def retry(
         https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
     """
 
+    if retry_window_after_first_call_in_seconds < 0:
+        warnings.warn(
+            f"`retry_window_after_first_call_in_seconds` must be non-negative, got {retry_window_after_first_call_in_seconds}",
+            UserWarning,
+            stacklevel=2,
+        )
+
     if max_calls_total < 2:
         warnings.warn(
             "`max_calls_total` should at least be 2 for `opnieuw` to retry. "
             f"It is set to '{max_calls_total}'. If you want to retry without delay "
             "consider using `opnieuw.test_util.retry_immediately`. If you do not "
-            "want any retries consider using `opnieuw.util.no_retries`",
+            "want any retries consider using `opnieuw.util.no_retries`.",
             UserWarning,
             stacklevel=2,
         )
 
-    
     @overload
     def decorator(f: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]: ...
 
@@ -264,6 +274,7 @@ def retry(
 
                         if (sleep_seconds := backoff_calculator.get_backoff()) is None:
                             raise
+
 
                         await asyncio.sleep(sleep_seconds)
             return functools.wraps(f)(async_wrapper)
@@ -312,8 +323,25 @@ def retry_async(
     but nowadays the main `retry` decorator can be used
     for both sync and async functions.
     """
+    if retry_window_after_first_call_in_seconds < 0:
+        warnings.warn(
+            f"`retry_window_after_first_call_in_seconds` must be non-negative, got {retry_window_after_first_call_in_seconds}",
+            UserWarning,
+            stacklevel=2,
+        )
+
+    if max_calls_total < 2:
+        warnings.warn(
+            "`max_calls_total` should at least be 2 for `opnieuw` to retry. "
+            f"It is set to '{max_calls_total}'. If you want to retry without delay "
+            "consider using `opnieuw.test_util.retry_immediately`. If you do not "
+            "want any retries consider using `opnieuw.util.no_retries`.",
+            UserWarning,
+            stacklevel=2,
+        )
+
     return retry(
-        retry_on_exceptions=retry_on_exceptions, 
+        retry_on_exceptions=retry_on_exceptions,
         max_calls_total=max_calls_total,
         retry_window_after_first_call_in_seconds=retry_window_after_first_call_in_seconds,
         namespace=namespace
