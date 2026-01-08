@@ -289,7 +289,7 @@ def retry(
                 last_exception = None
                 while True:
                     try:
-                        return cast(R, f(*args, **kwargs))
+                        return f(*args, **kwargs)
                     except Exception as e:
                         if last_exception is not None:
                             e.__cause__ = last_exception
