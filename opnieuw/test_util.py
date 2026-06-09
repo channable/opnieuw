@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from contextlib import AbstractContextManager
+from contextlib import _GeneratorContextManager
 
 from .retries import BackoffCalculator, replace_backoff_calculator
 
@@ -12,8 +12,11 @@ class WaitLessBackoff(BackoffCalculator):
             return None
         return 0
 
-
-def retry_immediately(namespace: str | None = None) -> AbstractContextManager[None]:
+# We have to use a private type from contextlib here, because otherwise we can't annotate
+# that the return value is a context manager *and* can be called as a decorator.
+#
+# For more context see: https://github.com/python/typeshed/issues/6520
+def retry_immediately(namespace: str | None = None) -> _GeneratorContextManager[None]:
     """
     Returns a contextmanager that prevents waits between retries for all `retry` and
     `retry_async` decorators with the provided namespace. None means all decorators
