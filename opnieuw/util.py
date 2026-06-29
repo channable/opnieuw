@@ -6,7 +6,7 @@ from .retries import BackoffCalculator, replace_backoff_calculator
 
 
 class NoRetryBackoff(BackoffCalculator):
-    def get_backoff(self) -> float | None:
+    def get_backoff(self, exception: Exception | None = None) -> float | None:
         return None
 
 
