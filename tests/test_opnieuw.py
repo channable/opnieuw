@@ -23,7 +23,7 @@ class TestBackoffCalculator(unittest.TestCase):
         )
 
         # This kind of BackoffCalculator should only return None
-        self.assertEqual(None, retry_state.get_backoff())
+        self.assertEqual(None, retry_state.get_backoff(exception=Exception()))
 
 
 class TestRetryClock(unittest.TestCase):

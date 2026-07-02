@@ -94,32 +94,42 @@ class BackoffCalculator:
         )
         self.backoffs = 0
 
-    def get_backoff(self) -> float | None:
+    def get_backoff(self, exception: Exception | None = None) -> float | None:
         """
         Return the amount of seconds to backoff.
 
         None indicates that there should be no more backoffs. The retry decorators
         are responsible for raising the last exception if None is returned.
+        The exception parameter is provided to allow for logging of the exception type
+        that caused the backoff, which can be useful for debugging purposes.
         """
         backoff_seconds = self.base_in_seconds * 2**self.backoffs
         jittered_backoff = random.uniform(0.0, backoff_seconds)
 
+        exception_name = type(exception).__name__ if exception is not None else "N/A"
+
         self.backoffs += 1
         if self.backoffs >= self.max_calls_total:
-            logger.debug(f"Used up all {self.backoffs} retries.")
+            logger.debug(
+                f"Used up all {self.backoffs} retries. "
+                f"Would have retried due to exception type: {exception_name}."
+            )
             return None
 
         remaining_window = self.deadline_second - self.clock.seconds_since_epoch()
         if jittered_backoff > remaining_window:
             logger.debug(
-                f"Next attempt would be after retry deadline (remaining window: {remaining_window:.3f}s), not retrying."
+                f"Next attempt would be after retry deadline (remaining window: {remaining_window:.3f}s), not retrying. "
+                f"Would have retried due to exception type: {exception_name}."
             )
             return None
 
         logger.debug(
             f"Backoff for {jittered_backoff:.3f} seconds after attempt {self.backoffs}/{self.max_calls_total} "
-            f"(remaining window: {remaining_window:.3f}s)"
+            f"(remaining window: {remaining_window:.3f}s). "
+            f"Will retry due to exception type: {exception_name}."
         )
+
         return jittered_backoff
 
 
@@ -272,9 +282,8 @@ def retry(
                         if not isinstance(e, retry_on_exceptions):
                             raise
 
-                        if (sleep_seconds := backoff_calculator.get_backoff()) is None:
+                        if (sleep_seconds := backoff_calculator.get_backoff(e)) is None:
                             raise
-
 
                         await asyncio.sleep(sleep_seconds)
             return functools.wraps(f)(async_wrapper)
@@ -298,7 +307,7 @@ def retry(
                         if not isinstance(e, retry_on_exceptions):
                             raise
 
-                        if (sleep_seconds := backoff_calculator.get_backoff()) is None:
+                        if (sleep_seconds := backoff_calculator.get_backoff(e)) is None:
                             raise
 
                         time.sleep(sleep_seconds)
