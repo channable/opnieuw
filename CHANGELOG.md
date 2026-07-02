@@ -1,6 +1,15 @@
 Changelog
 =========
 
+3.4.0
+-----
+
+Released 2026-07-02.
+
+Release highlights:
+
+- Improve debug logging by including the exception type that triggered the retry.
+
 3.3.0
 -----
 
