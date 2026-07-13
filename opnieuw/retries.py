@@ -14,18 +14,17 @@ import logging
 import random
 import sys
 import time
-import typing_extensions
 import warnings
 from collections import defaultdict
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import TypeVar, Awaitable, cast, overload
+from typing import Awaitable, ParamSpec, TypeVar, cast, overload
 
-if sys.version_info < (3, 10):
-    from typing_extensions import ParamSpec
+if sys.version_info < (3, 13):
+    from typing_extensions import deprecated
 else:
-    from typing import ParamSpec
+    from warnings import deprecated
 
 from .clock import Clock, MonotonicClock
 
@@ -317,7 +316,7 @@ def retry(
 # We expose `retry_async` for backwards-compatibility.
 # However, nowadays the main `retry` decorator is able
 # to accept both sync and async functions directly.
-@typing_extensions.deprecated("Use the normal `retry` instead, as works for both sync and async functions", category=None)
+@deprecated("Use the normal `retry` instead, as works for both sync and async functions", category=None)
 def retry_async(
     *,
     retry_on_exceptions: type[Exception] | tuple[type[Exception], ...],
