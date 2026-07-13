@@ -1,6 +1,16 @@
 Changelog
 =========
 
+4.0.0
+-----
+
+Released 2026-07-13.
+
+Release highlights:
+
+- Drop Python 3.8 and 3.9 support; `opnieuw` now requires Python 3.10+.
+- Remove the `typing-extensions` runtime dependency on Python 3.13+.
+
 3.4.0
 -----
 
