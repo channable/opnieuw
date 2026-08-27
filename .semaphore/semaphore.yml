@@ -4,7 +4,7 @@ name: "Opnieuw"
 agent:
   machine:
     type: "f1-standard-2"
-    os_image: "ubuntu2204"
+    os_image: "ubuntu2404"
 
 
 blocks:
@@ -16,6 +16,9 @@ blocks:
         - name: "Unit tests"
           commands:
             - "checkout"
+            - "sudo apt-get update && sudo apt-get install -y python3-venv"
+            - "python -m venv venv"
+            - "source venv/bin/activate"
             - "python -m pip install ."
             - "python -m unittest discover tests"
 
