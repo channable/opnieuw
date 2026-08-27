@@ -53,5 +53,8 @@ blocks:
             - "ssh-add ~/.ssh/id_ed25519"
 
             - "checkout"
-            - "python3.12 -m pip install -e ."
+            - "sudo apt-get update && sudo apt-get install -y python3-venv"
+            - "python -m venv venv"
+            - "source venv/bin/activate"
+            - "python -m pip install -e ."
             - "bash .semaphore/publish-or-perish.sh"
